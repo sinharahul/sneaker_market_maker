@@ -120,6 +120,11 @@ offline_transitions = Table(
         ForeignKey("behavior_policies.id"),
         nullable=False,
     ),
+    Column(
+        "supersedes_transition_id",
+        UUID(as_uuid=True),
+        ForeignKey("offline_transitions.id"),
+    ),
     Column("state", JSONB, nullable=False),
     Column("proposed_action", JSONB, nullable=False),
     Column("post_gate_action", JSONB, nullable=False),

@@ -115,6 +115,11 @@ def upgrade() -> None:
             sa.ForeignKey("behavior_policies.id"),
             nullable=False,
         ),
+        sa.Column(
+            "supersedes_transition_id",
+            uuid(as_uuid=True),
+            sa.ForeignKey("offline_transitions.id"),
+        ),
         sa.Column("state", jsonb(), nullable=False),
         sa.Column("proposed_action", jsonb(), nullable=False),
         sa.Column("post_gate_action", jsonb(), nullable=False),
