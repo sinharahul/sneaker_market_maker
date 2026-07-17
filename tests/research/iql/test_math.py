@@ -29,7 +29,10 @@ def test_certainty_equivalent_near_zero_eta_uses_variance_series() -> None:
     mean = quantiles.mean(dim=-1)
     variance = ((quantiles - mean.unsqueeze(-1)) ** 2).mean(dim=-1)
     expected = mean - 0.5 * eta * variance
-    torch.testing.assert_close(result, expected)
+    torch.testing.assert_close(result, expected, rtol=0.0, atol=1e-12)
+    correction = (result - mean).abs()
+    assert torch.all(correction > 1e-12)
+    torch.testing.assert_close(correction, 0.5 * eta * variance, rtol=0.0, atol=1e-12)
 
 
 @pytest.mark.parametrize("eta", [0.25, 0.5, 1.0])
