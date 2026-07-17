@@ -1,9 +1,11 @@
 import importlib.metadata
 
+import pytest
 import torch
 from pfhedge.nn import EntropicRiskMeasure
 
 
+@pytest.mark.integration
 def test_pfhedge_023_entropic_risk_measure_public_api() -> None:
     assert importlib.metadata.version("pfhedge") == "0.23.0"
     pnl = torch.tensor([[-1.0, 0.0], [1.0, 2.0]], dtype=torch.float64)
