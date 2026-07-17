@@ -61,7 +61,33 @@ def test_inactive_action_categories_neutralize_continuous_values(
     assert result == HybridAction(category, 0.0, 0, 0)
 
 
-def test_quote_is_tick_rounded_and_clamped() -> None:
+@pytest.mark.parametrize(
+    ("bid_offset", "ask_offset", "expected_bid", "expected_ask"),
+    [
+        (1.6, -1.6, 2, -2),
+        (-1.6, 1.6, -2, 2),
+    ],
+)
+def test_quote_offsets_are_tick_rounded_within_bounds(
+    bid_offset: float,
+    ask_offset: float,
+    expected_bid: int,
+    expected_ask: int,
+) -> None:
+    result = canonicalize_action(
+        RawHybridAction(ActionCategory.QUOTE, 0.5, bid_offset, ask_offset),
+        ActionBounds(-3, 3, -4, 4),
+        ActionMask(True, True, True),
+    )
+    assert result == HybridAction(
+        ActionCategory.QUOTE,
+        0.5,
+        expected_bid,
+        expected_ask,
+    )
+
+
+def test_quote_values_are_clamped_to_action_bounds() -> None:
     result = canonicalize_action(
         RawHybridAction(ActionCategory.QUOTE, 1.4, -4.6, 2.6),
         ActionBounds(-3, 3, -4, 2),
@@ -70,12 +96,23 @@ def test_quote_is_tick_rounded_and_clamped() -> None:
     assert result == HybridAction(ActionCategory.QUOTE, 1.0, -3, 2)
 
 
-def test_masked_action_category_fails_closed() -> None:
+@pytest.mark.parametrize(
+    ("category", "mask"),
+    [
+        (ActionCategory.NO_OP, ActionMask(False, True, True)),
+        (ActionCategory.QUOTE, ActionMask(True, False, True)),
+        (ActionCategory.CANCEL, ActionMask(True, True, False)),
+    ],
+)
+def test_masked_action_category_fails_closed(
+    category: ActionCategory,
+    mask: ActionMask,
+) -> None:
     with pytest.raises(ValueError, match="masked action category"):
         canonicalize_action(
-            RawHybridAction(ActionCategory.QUOTE, 0.5, 0.0, 0.0),
+            RawHybridAction(category, 0.5, 0.0, 0.0),
             ActionBounds(-3, 3, -4, 4),
-            ActionMask(True, False, True),
+            mask,
         )
 
 
