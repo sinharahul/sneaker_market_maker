@@ -15,7 +15,10 @@ from sneaker_market_maker.research.contracts.action import (
 from sneaker_market_maker.research.encoding.schema import EncodedState
 from sneaker_market_maker.research.episodes.builder import Episode
 from sneaker_market_maker.research.episodes.events import DecisionPoint, EventKind
-from sneaker_market_maker.research.evaluation.harness import EvaluationHarness
+from sneaker_market_maker.research.evaluation.harness import (
+    EvaluationHarness,
+    serialize_episode,
+)
 from sneaker_market_maker.research.policies.baselines import (
     DeterministicPolicyAdapter,
     HeuristicPolicyAdapter,
@@ -35,22 +38,24 @@ BOUNDS = ActionBounds(-2, 2, -3, 3)
 def encoded(value: float = 1.0) -> EncodedState:
     return EncodedState(
         values=torch.tensor([value]),
-        collection_mask=torch.tensor([], dtype=torch.bool),
+        collection_mask=torch.tensor([True]),
         missingness=torch.tensor([False]),
         schema_version="state-v1",
         scaler_version="scaler-v1",
     )
 
 
-def episode(index: int, provenance: str = "historical") -> Episode:
+def episode(index: int, provenance: str | None = "historical") -> Episode:
     episode_id = UUID(int=index + 1)
+    source_ids = (f"source-{index}",) if provenance is not None else ()
+    provenances = (provenance,) if provenance is not None else ()
     decision = DecisionPoint(
         index=0,
         simulation_time=NOW + timedelta(days=index),
         elapsed_seconds=60,
         reasons=(EventKind.BOOK,),
-        source_ids=(f"source-{index}",),
-        provenances=(provenance,),
+        source_ids=source_ids,
+        provenances=provenances,
         discount=1.0,
         episode_id=episode_id,
         state={"encoded_state": encoded(float(index + 1))},
@@ -79,26 +84,6 @@ def assumptions() -> FrozenAssumptions:
     )
 
 
-def episode_bytes(item: Episode) -> bytes:
-    payload = {
-        "episode_id": str(item.episode_id),
-        "start": item.start.isoformat(),
-        "end": item.end.isoformat(),
-        "terminal_reason": item.terminal_reason,
-        "decisions": [
-            {
-                "index": decision.index,
-                "simulation_time": decision.simulation_time.isoformat(),
-                "source_ids": decision.source_ids,
-                "provenances": decision.provenances,
-                "state_values": decision.state["encoded_state"].values.tolist(),
-            }
-            for decision in item.decisions
-        ],
-    }
-    return json.dumps(payload, sort_keys=True, separators=(",", ":")).encode()
-
-
 class SimulatorSpy:
     def __init__(self) -> None:
         self.calls: list[tuple[bytes, bytes, tuple[HybridAction, ...]]] = []
@@ -111,7 +96,7 @@ class SimulatorSpy:
     ) -> EpisodeEvaluation:
         self.calls.append(
             (
-                episode_bytes(item),
+                serialize_episode(item),
                 frozen.to_bytes(),
                 actions,
             )
@@ -162,15 +147,56 @@ class TinyMLP(torch.nn.Module):
 def test_every_baseline_uses_identical_inputs_and_shared_simulator(policy: object) -> None:
     items = (episode(0), episode(1))
     simulator = SimulatorSpy()
+    expected_episode_bytes = [serialize_episode(item) for item in items]
 
     report = EvaluationHarness(simulator).run(policy, items, assumptions())
 
-    expected_episode_bytes = [episode_bytes(item) for item in items]
     assert [call[0] for call in simulator.calls] == expected_episode_bytes
     assert [call[1] for call in simulator.calls] == [assumptions().to_bytes()] * 2
     assert report.assumptions_hash == assumptions().content_hash
     assert report.historical is True
     assert report.support_coverage == pytest.approx(0.75)
+
+
+def test_episode_serialization_is_complete_and_canonical() -> None:
+    payload = json.loads(serialize_episode(episode(0)))
+    decision = payload["decisions"][0]
+    encoded_state = decision["state"]["encoded_state"]
+
+    assert decision["action_mask"] == {"cancel": True, "no_op": True, "quote": True}
+    assert decision["action_bounds"] == {
+        "ask_high": 3,
+        "ask_low": -3,
+        "bid_high": 2,
+        "bid_low": -2,
+    }
+    assert decision["reasons"] == ["book"]
+    assert decision["discount"] == 1.0
+    assert encoded_state["missingness"]["values"] == [False]
+    assert encoded_state["collection_mask"]["values"] == [True]
+    assert encoded_state["schema_version"] == "state-v1"
+    assert encoded_state["scaler_version"] == "scaler-v1"
+
+
+def test_policy_receives_detached_clones_and_cannot_mutate_episode() -> None:
+    item = episode(0)
+    before = serialize_episode(item)
+    simulator = SimulatorSpy()
+
+    def mutate(state: EncodedState, _: ActionMask, __: ActionBounds) -> RawHybridAction:
+        state.values.add_(100)
+        state.collection_mask.fill_(False)
+        state.missingness.fill_(True)
+        return quote_policy(state, MASK, BOUNDS)
+
+    EvaluationHarness(simulator).run(
+        DeterministicPolicyAdapter(mutate),
+        (item,),
+        assumptions(),
+    )
+
+    assert serialize_episode(item) == before
+    assert simulator.calls[0][0] == before
 
 
 def test_canonicalizes_policy_actions_before_shared_simulation() -> None:
@@ -225,6 +251,16 @@ def test_mixed_provenance_is_not_reported_as_historical() -> None:
     report = EvaluationHarness(SimulatorSpy()).run(
         NoModelPolicy(),
         (episode(0), episode(1, "synthetic")),
+        assumptions(),
+    )
+
+    assert report.historical is False
+
+
+def test_empty_provenance_is_not_reported_as_historical() -> None:
+    report = EvaluationHarness(SimulatorSpy()).run(
+        NoModelPolicy(),
+        (episode(0, None),),
         assumptions(),
     )
 
