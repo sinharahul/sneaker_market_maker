@@ -15,7 +15,11 @@ from sneaker_market_maker.persistence.database import (
     create_database_engine,
     create_session_factory,
 )
-from sneaker_market_maker.persistence.research_repository import AddResult, ResearchRepository
+from sneaker_market_maker.persistence.research_repository import (
+    AddResult,
+    ResearchRepository,
+    TransitionConflict,
+)
 from sneaker_market_maker.persistence.research_tables import (
     action_schemas,
     behavior_policies,
@@ -249,3 +253,42 @@ def test_correction_supersedes_without_mutating_original(session_factory) -> Non
     assert by_id[original.transition_id]["content_hash"] == original.content_hash
     assert by_id[original.transition_id]["supersedes_transition_id"] is None
     assert by_id[correction.transition_id]["supersedes_transition_id"] == original.transition_id
+
+
+def test_correction_retry_rejects_different_superseded_transition(session_factory) -> None:
+    original = _transition()
+    other_original = replace(
+        _transition(),
+        state_schema_version="state-other-v1",
+        action_schema_version="action-other-v1",
+        reward_schema_version="reward-other-v1",
+        reward=replace(_transition().reward, version="reward-other-v1"),
+    )
+    _seed_lineage(session_factory, original)
+    _seed_lineage(session_factory, other_original)
+    repository = ResearchRepository(session_factory)
+    assert repository.add_transition(original) is AddResult.CREATED
+    assert repository.add_transition(other_original) is AddResult.CREATED
+    correction = replace(
+        original,
+        transition_id=uuid4(),
+        reward_schema_version="reward-v2",
+        reward=replace(original.reward, version="reward-v2", total=Decimal("1.20")),
+        content_hash="corrected-content-sha256",
+    )
+    with session_factory.begin() as session:
+        session.execute(insert(reward_schemas).values(_evidence("reward-v2")))
+    assert (
+        repository.add_correction(correction, supersedes_transition_id=original.transition_id)
+        is AddResult.CREATED
+    )
+    assert (
+        repository.add_correction(correction, supersedes_transition_id=original.transition_id)
+        is AddResult.EXISTING
+    )
+
+    with pytest.raises(TransitionConflict, match="different transition"):
+        repository.add_correction(
+            correction,
+            supersedes_transition_id=other_original.transition_id,
+        )

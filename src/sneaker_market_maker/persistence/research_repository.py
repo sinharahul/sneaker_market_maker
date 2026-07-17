@@ -112,6 +112,14 @@ class ResearchRepository:
             if existing is not None:
                 if existing.content_hash != transition.content_hash:
                     raise TransitionConflict("transition identity has different content")
+                persisted_supersedes_id = self._get_supersedes_id(
+                    session,
+                    existing.transition_id,
+                )
+                if persisted_supersedes_id != supersedes_transition_id:
+                    raise TransitionConflict(
+                        "correction identity supersedes a different transition"
+                    )
                 return AddResult.EXISTING
             self._insert_behavior(session, transition)
             self._insert_reward(session, transition)
@@ -135,6 +143,13 @@ class ResearchRepository:
     ) -> OfflineTransition | None:
         row = session.execute(_identity_query(identity)).mappings().first()
         return None if row is None else transition_from_row(row)
+
+    def _get_supersedes_id(self, session: Session, transition_id: UUID) -> UUID | None:
+        return session.scalar(
+            select(offline_transitions.c.supersedes_transition_id).where(
+                offline_transitions.c.id == transition_id
+            )
+        )
 
     def _insert_behavior(self, session: Session, transition: OfflineTransition) -> None:
         session.execute(insert(behavior_policies).values(policy_values(transition)))
