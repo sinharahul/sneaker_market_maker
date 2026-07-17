@@ -3,11 +3,14 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
 from types import MappingProxyType
 from typing import Literal
+from uuid import UUID
+
+from sneaker_market_maker.research.contracts.action import ActionBounds, ActionMask
 
 
 class EventKind(str, Enum):
@@ -22,6 +25,27 @@ class EventKind(str, Enum):
     SETTLEMENT = "settlement"
     FRESHNESS = "freshness"
     RISK_LIMIT = "risk_limit"
+
+
+@dataclass(frozen=True)
+class DecisionPoint:
+    index: int
+    simulation_time: datetime
+    elapsed_seconds: int
+    reasons: tuple[EventKind, ...]
+    source_ids: tuple[str, ...]
+    provenances: tuple[Literal["historical", "synthetic"], ...]
+    discount: float
+    episode_id: UUID | None = None
+    state: Mapping[str, object] = field(default_factory=dict)
+    action_mask: ActionMask | None = None
+    action_bounds: ActionBounds | None = None
+    terminal_reason: str | None = None
+
+    def __post_init__(self) -> None:
+        if len(self.source_ids) != len(self.provenances):
+            raise ValueError("source IDs and provenances must align")
+        object.__setattr__(self, "state", MappingProxyType(dict(self.state)))
 
 
 @dataclass(frozen=True)

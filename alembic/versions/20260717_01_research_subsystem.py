@@ -159,6 +159,9 @@ def upgrade() -> None:
         sa.Column("gate_policy_version", sa.String(128), nullable=False),
         sa.Column("code_revision", sa.String(128), nullable=False),
         sa.Column("random_seed", sa.BigInteger(), nullable=False),
+        sa.Column("effects", jsonb(), nullable=False),
+        sa.Column("trainability_status", sa.String(32), nullable=False),
+        sa.Column("non_trainable_reason", sa.Text()),
         sa.Column("content_hash", sa.String(128), nullable=False),
         sa.ForeignKeyConstraint(
             ["episode_id", "decision_index"],

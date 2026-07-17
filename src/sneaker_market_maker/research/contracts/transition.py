@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import math
 from collections.abc import Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from decimal import Decimal
 from types import MappingProxyType
 from typing import Literal
@@ -15,6 +15,38 @@ from sneaker_market_maker.research.contracts.action import (
     ActionMask,
     HybridAction,
 )
+
+
+class TrainabilityError(ValueError):
+    """Raised when a transition must be quarantined from training."""
+
+
+@dataclass(frozen=True)
+class StepEffects:
+    order_ids: tuple[str, ...]
+    fill_ids: tuple[str, ...]
+    fee_ledger_ids: tuple[str, ...]
+    inventory_transition_ids: tuple[str, ...]
+    logistics_transition_ids: tuple[str, ...]
+    settlement_ids: tuple[str, ...]
+
+    def __post_init__(self) -> None:
+        for value in self.all_ids:
+            if not value or not value.strip():
+                raise ValueError("effect IDs must be nonempty")
+        if len(self.all_ids) != len(set(self.all_ids)):
+            raise ValueError("effect IDs must be unique")
+
+    @property
+    def all_ids(self) -> tuple[str, ...]:
+        return (
+            *self.order_ids,
+            *self.fill_ids,
+            *self.fee_ledger_ids,
+            *self.inventory_transition_ids,
+            *self.logistics_transition_ids,
+            *self.settlement_ids,
+        )
 
 
 @dataclass(frozen=True)
@@ -43,7 +75,13 @@ class BehaviorPolicy:
             return
 
         if any(value is None for value in values):
-            raise ValueError("stochastic propensity values are required")
+            if (
+                all(value is None for value in values)
+                and self.missingness_reason
+                and self.missingness_reason.strip()
+            ):
+                return
+            raise ValueError("stochastic propensity values are required together")
         categorical = self.categorical_propensity
         if (
             categorical is None
@@ -110,6 +148,11 @@ class OfflineTransition:
     code_revision: str
     random_seed: int
     content_hash: str
+    effects: StepEffects = field(
+        default_factory=lambda: StepEffects((), (), (), (), (), ())
+    )
+    trainability_status: Literal["trainable", "quarantined"] = "trainable"
+    non_trainable_reason: str | None = None
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "state", MappingProxyType(dict(self.state)))
@@ -118,22 +161,40 @@ class OfflineTransition:
 
     def validate_trainable(self) -> None:
         if not self.reward.reconciled:
-            raise ValueError("reward is not reconciled")
+            raise TrainabilityError("reward is not reconciled")
         if not self.next_state:
-            raise ValueError("next state is required")
+            raise TrainabilityError("next state is required")
         if self.done != (self.terminal_reason is not None):
-            raise ValueError("terminal reason must match done")
+            raise TrainabilityError("terminal reason must match done")
         schema_versions = (
             self.state_schema_version,
             self.action_schema_version,
             self.reward_schema_version,
         )
         if any(not version or not version.strip() for version in schema_versions):
-            raise ValueError("schema versions are required")
+            raise TrainabilityError("schema versions are required")
+        lineage_versions = (
+            self.dataset_version,
+            self.scenario_version,
+            self.simulator_version,
+            self.gate_policy_version,
+            self.code_revision,
+        )
+        if any(not version or not version.strip() for version in lineage_versions):
+            raise TrainabilityError("transition lineage is incomplete")
         if (
             not self.source_record_ids
             or any(not record_id or not record_id.strip() for record_id in self.source_record_ids)
             or not self.content_hash
             or not self.content_hash.strip()
         ):
-            raise ValueError("provenance is incomplete")
+            raise TrainabilityError("provenance is incomplete")
+        propensities = (
+            self.behavior.categorical_propensity,
+            self.behavior.active_continuous_log_density,
+            self.behavior.joint_log_propensity,
+        )
+        if not self.behavior.deterministic and any(value is None for value in propensities):
+            raise TrainabilityError("behavior propensity is missing")
+        if not self.effects.logistics_transition_ids:
+            raise TrainabilityError("logistics outcomes are missing")

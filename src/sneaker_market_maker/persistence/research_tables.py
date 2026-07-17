@@ -164,6 +164,9 @@ offline_transitions = Table(
     Column("gate_policy_version", String(128), nullable=False),
     Column("code_revision", String(128), nullable=False),
     Column("random_seed", BigInteger, nullable=False),
+    Column("effects", JSONB, nullable=False),
+    Column("trainability_status", String(32), nullable=False),
+    Column("non_trainable_reason", Text),
     Column("content_hash", String(128), nullable=False),
     ForeignKeyConstraint(
         ["episode_id", "decision_index"],

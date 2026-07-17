@@ -7,10 +7,13 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from itertools import groupby
-from typing import Literal
 from uuid import UUID
 
-from sneaker_market_maker.research.episodes.events import EventKind, NormalizedEvent
+from sneaker_market_maker.research.episodes.events import (
+    DecisionPoint,
+    EventKind,
+    NormalizedEvent,
+)
 
 
 @dataclass(frozen=True)
@@ -29,17 +32,6 @@ class EpisodeConfig:
             raise ValueError("duration must be positive")
         if not math.isfinite(self.discount_rate) or self.discount_rate < 0:
             raise ValueError("discount_rate must be finite and non-negative")
-
-
-@dataclass(frozen=True)
-class DecisionPoint:
-    index: int
-    simulation_time: datetime
-    elapsed_seconds: int
-    reasons: tuple[EventKind, ...]
-    source_ids: tuple[str, ...]
-    provenances: tuple[Literal["historical", "synthetic"], ...]
-    discount: float
 
 
 @dataclass(frozen=True)
@@ -122,6 +114,7 @@ class EpisodeBuilder:
                     source_ids=tuple(event.source_id for event in grouped_events),
                     provenances=tuple(event.provenance for event in grouped_events),
                     discount=math.exp(-config.discount_rate * elapsed_seconds),
+                    episode_id=config.episode_id,
                 )
             )
             previous_time = simulation_time

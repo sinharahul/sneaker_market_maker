@@ -80,6 +80,10 @@ class InMemoryResearchRepository:
     def get_transition(self, transition_id: UUID) -> OfflineTransition | None:
         return self._by_id.get(transition_id)
 
+    @property
+    def transitions(self) -> tuple[OfflineTransition, ...]:
+        return tuple(self._by_id.values())
+
 
 class ResearchRepository:
     def __init__(self, session_factory: sessionmaker[Session]) -> None:

@@ -16,6 +16,7 @@ from sneaker_market_maker.research.contracts.transition import (
     BehaviorPolicy,
     OfflineTransition,
     RewardRecord,
+    StepEffects,
 )
 
 
@@ -100,6 +101,16 @@ def transition_values(
         "gate_policy_version": transition.gate_policy_version,
         "code_revision": transition.code_revision,
         "random_seed": transition.random_seed,
+        "effects": {
+            "order_ids": list(transition.effects.order_ids),
+            "fill_ids": list(transition.effects.fill_ids),
+            "fee_ledger_ids": list(transition.effects.fee_ledger_ids),
+            "inventory_transition_ids": list(transition.effects.inventory_transition_ids),
+            "logistics_transition_ids": list(transition.effects.logistics_transition_ids),
+            "settlement_ids": list(transition.effects.settlement_ids),
+        },
+        "trainability_status": transition.trainability_status,
+        "non_trainable_reason": transition.non_trainable_reason,
         "content_hash": transition.content_hash,
     }
 
@@ -116,6 +127,8 @@ def _action_from_payload(payload: Mapping[str, object]) -> HybridAction:
 def transition_from_row(row: Mapping[str, object]) -> OfflineTransition:
     reward = row["reward"]
     assert isinstance(reward, Mapping)
+    effects = row.get("effects", {})
+    assert isinstance(effects, Mapping)
     return OfflineTransition(
         transition_id=UUID(str(row["id"])),
         episode_id=UUID(str(row["episode_id"])),
@@ -172,4 +185,22 @@ def transition_from_row(row: Mapping[str, object]) -> OfflineTransition:
         code_revision=str(row["code_revision"]),
         random_seed=int(row["random_seed"]),
         content_hash=str(row["content_hash"]),
+        effects=StepEffects(
+            order_ids=tuple(effects.get("order_ids", ())),  # type: ignore[arg-type]
+            fill_ids=tuple(effects.get("fill_ids", ())),  # type: ignore[arg-type]
+            fee_ledger_ids=tuple(effects.get("fee_ledger_ids", ())),  # type: ignore[arg-type]
+            inventory_transition_ids=tuple(
+                effects.get("inventory_transition_ids", ())  # type: ignore[arg-type]
+            ),
+            logistics_transition_ids=tuple(
+                effects.get("logistics_transition_ids", ())  # type: ignore[arg-type]
+            ),
+            settlement_ids=tuple(effects.get("settlement_ids", ())),  # type: ignore[arg-type]
+        ),
+        trainability_status=str(row.get("trainability_status", "trainable")),  # type: ignore[arg-type]
+        non_trainable_reason=(
+            None
+            if row.get("non_trainable_reason") is None
+            else str(row["non_trainable_reason"])
+        ),
     )
