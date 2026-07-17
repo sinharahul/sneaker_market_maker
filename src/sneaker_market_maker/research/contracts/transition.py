@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import math
 from collections.abc import Mapping
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from decimal import Decimal
 from types import MappingProxyType
 from typing import Literal
@@ -148,13 +148,19 @@ class OfflineTransition:
     code_revision: str
     random_seed: int
     content_hash: str
-    effects: StepEffects = field(
-        default_factory=lambda: StepEffects((), (), (), (), (), ())
-    )
-    trainability_status: Literal["trainable", "quarantined"] = "trainable"
-    non_trainable_reason: str | None = None
+    effects: StepEffects
+    trainability_status: Literal["trainable", "quarantined"]
+    non_trainable_reason: str | None
 
     def __post_init__(self) -> None:
+        if self.trainability_status not in ("trainable", "quarantined"):
+            raise ValueError("invalid trainability status")
+        if self.trainability_status == "trainable" and self.non_trainable_reason is not None:
+            raise ValueError("trainable transition cannot have a quarantine reason")
+        if self.trainability_status == "quarantined" and (
+            not self.non_trainable_reason or not self.non_trainable_reason.strip()
+        ):
+            raise ValueError("quarantined transition requires a reason")
         object.__setattr__(self, "state", MappingProxyType(dict(self.state)))
         object.__setattr__(self, "next_state", MappingProxyType(dict(self.next_state)))
         object.__setattr__(self, "source_record_ids", tuple(self.source_record_ids))

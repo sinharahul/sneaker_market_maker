@@ -32,3 +32,25 @@ Implemented complete, deterministic offline-transition assembly and persistence 
   Python package are unavailable.
 - Repository-wide Ruff reaches one pre-existing `UP038` violation in
   `src/sneaker_market_maker/pipeline.py`; all Task 9 affected files pass Ruff.
+
+## Fix
+
+- Added recursive JSON-boundary conversion so `Decimal` values in state, next state, and nested
+  JSON payloads persist as strings.
+- Removed synthesized `OfflineTransition` effects and trainability defaults. Deserialization now
+  requires the persisted effects, every categorized effect key, status, and reason fields.
+- Added status/reason consistency checks so incomplete or contradictory records cannot appear
+  trainable.
+- Added regression coverage for nested Decimal state serialization, strict missing-field failure,
+  distinct proposed/post-gate actions, and terminal next-state linkage.
+
+Exact evidence:
+
+- Red test:
+  `python -m pytest tests/persistence/test_research_repository_unit.py tests/research/transitions/test_service.py -q`
+  → `3 failed, 11 passed` before the fixes.
+- Focused affected tests:
+  `python -m pytest tests/research/transitions/test_service.py tests/research/contracts/test_transition.py tests/research/episodes/test_builder.py tests/persistence/test_research_repository_unit.py tests/persistence/test_research_tables.py -q`
+  → `44 passed in 0.68s`.
+- Focused Ruff over the modified source and test files → `All checks passed!`.
+- `git diff --check` → passed.

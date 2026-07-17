@@ -74,6 +74,8 @@ def complete_transition() -> OfflineTransition:
             logistics_transition_ids=("logistics-1",),
             settlement_ids=(),
         ),
+        trainability_status="trainable",
+        non_trainable_reason=None,
     )
 
 

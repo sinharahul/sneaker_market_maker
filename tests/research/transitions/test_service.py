@@ -46,6 +46,7 @@ def point(index: int, inventory: Decimal, *, terminal_reason: str | None = None)
 
 EPISODE_ID = uuid4()
 ACTION = HybridAction(ActionCategory.QUOTE, 0.5, -1, 1)
+POST_GATE_ACTION = HybridAction(ActionCategory.CANCEL, 0.0, 0, 0)
 BEHAVIOR = BehaviorPolicy(
     version="behavior-v1",
     collection_mode="stochastic",
@@ -93,7 +94,7 @@ def transition_input(**overrides: object) -> TransitionInput:
         "current": point(0, Decimal("0")),
         "next": point(1, Decimal("1")),
         "proposed_action": ACTION,
-        "post_gate_action": ACTION,
+        "post_gate_action": POST_GATE_ACTION,
         "behavior": BEHAVIOR,
         "reward": REWARD,
         "effects": EFFECTS,
@@ -114,10 +115,25 @@ def test_records_complete_adjacent_transition_and_attribution() -> None:
     assert transition.next_state["inventory"] == Decimal("1")
     assert transition.elapsed_seconds == 60
     assert transition.discount == 0.99
+    assert transition.proposed_action == ACTION
+    assert transition.post_gate_action == POST_GATE_ACTION
+    assert transition.proposed_action != transition.post_gate_action
     assert transition.behavior is BEHAVIOR
     assert transition.effects == EFFECTS
     assert transition.source_record_ids == ("event-0", "event-1", *EFFECTS.all_ids)
     assert transition.trainability_status == "trainable"
+
+
+def test_terminal_linkage_comes_from_next_decision() -> None:
+    repository = InMemoryResearchRepository()
+    terminal = point(1, Decimal("0"), terminal_reason="replay_exhausted")
+
+    TransitionService(repository).record(transition_input(next=terminal))
+    transition = repository.transitions[0]
+
+    assert transition.done is True
+    assert transition.terminal_reason == "replay_exhausted"
+    assert transition.next_state == terminal.state
 
 
 def test_hash_is_atomic_canonical_and_decimal_sensitive() -> None:

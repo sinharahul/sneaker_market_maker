@@ -20,6 +20,16 @@ from sneaker_market_maker.research.contracts.transition import (
 )
 
 
+def _json_payload(value: object) -> object:
+    if isinstance(value, Decimal):
+        return str(value)
+    if isinstance(value, Mapping):
+        return {str(key): _json_payload(item) for key, item in value.items()}
+    if isinstance(value, list | tuple):
+        return [_json_payload(item) for item in value]
+    return value
+
+
 def action_payload(action: HybridAction) -> dict[str, object]:
     return {
         "category": action.category.value,
@@ -77,23 +87,23 @@ def transition_values(
         "decision_index": transition.decision_index,
         "behavior_policy_id": transition.transition_id,
         "supersedes_transition_id": supersedes_transition_id,
-        "state": dict(transition.state),
-        "proposed_action": action_payload(transition.proposed_action),
-        "post_gate_action": action_payload(transition.post_gate_action),
-        "reward": reward_payload(transition),
+        "state": _json_payload(transition.state),
+        "proposed_action": _json_payload(action_payload(transition.proposed_action)),
+        "post_gate_action": _json_payload(action_payload(transition.post_gate_action)),
+        "reward": _json_payload(reward_payload(transition)),
         "reward_total": reward.total,
         "nav_delta": reward.nav_delta,
-        "next_state": dict(transition.next_state),
+        "next_state": _json_payload(transition.next_state),
         "done": transition.done,
         "terminal_reason": transition.terminal_reason,
         "elapsed_seconds": transition.elapsed_seconds,
         "discount": transition.discount,
-        "action_mask": vars(transition.action_mask),
-        "action_bounds": vars(transition.action_bounds),
+        "action_mask": _json_payload(vars(transition.action_mask)),
+        "action_bounds": _json_payload(vars(transition.action_bounds)),
         "state_schema_version": transition.state_schema_version,
         "action_schema_version": transition.action_schema_version,
         "reward_schema_version": transition.reward_schema_version,
-        "source_record_ids": list(transition.source_record_ids),
+        "source_record_ids": _json_payload(transition.source_record_ids),
         "provenance_label": transition.provenance_label,
         "dataset_version": transition.dataset_version,
         "scenario_version": transition.scenario_version,
@@ -101,14 +111,7 @@ def transition_values(
         "gate_policy_version": transition.gate_policy_version,
         "code_revision": transition.code_revision,
         "random_seed": transition.random_seed,
-        "effects": {
-            "order_ids": list(transition.effects.order_ids),
-            "fill_ids": list(transition.effects.fill_ids),
-            "fee_ledger_ids": list(transition.effects.fee_ledger_ids),
-            "inventory_transition_ids": list(transition.effects.inventory_transition_ids),
-            "logistics_transition_ids": list(transition.effects.logistics_transition_ids),
-            "settlement_ids": list(transition.effects.settlement_ids),
-        },
+        "effects": _json_payload(vars(transition.effects)),
         "trainability_status": transition.trainability_status,
         "non_trainable_reason": transition.non_trainable_reason,
         "content_hash": transition.content_hash,
@@ -127,7 +130,7 @@ def _action_from_payload(payload: Mapping[str, object]) -> HybridAction:
 def transition_from_row(row: Mapping[str, object]) -> OfflineTransition:
     reward = row["reward"]
     assert isinstance(reward, Mapping)
-    effects = row.get("effects", {})
+    effects = row["effects"]
     assert isinstance(effects, Mapping)
     return OfflineTransition(
         transition_id=UUID(str(row["id"])),
@@ -186,21 +189,19 @@ def transition_from_row(row: Mapping[str, object]) -> OfflineTransition:
         random_seed=int(row["random_seed"]),
         content_hash=str(row["content_hash"]),
         effects=StepEffects(
-            order_ids=tuple(effects.get("order_ids", ())),  # type: ignore[arg-type]
-            fill_ids=tuple(effects.get("fill_ids", ())),  # type: ignore[arg-type]
-            fee_ledger_ids=tuple(effects.get("fee_ledger_ids", ())),  # type: ignore[arg-type]
+            order_ids=tuple(effects["order_ids"]),  # type: ignore[arg-type]
+            fill_ids=tuple(effects["fill_ids"]),  # type: ignore[arg-type]
+            fee_ledger_ids=tuple(effects["fee_ledger_ids"]),  # type: ignore[arg-type]
             inventory_transition_ids=tuple(
-                effects.get("inventory_transition_ids", ())  # type: ignore[arg-type]
+                effects["inventory_transition_ids"]  # type: ignore[arg-type]
             ),
             logistics_transition_ids=tuple(
-                effects.get("logistics_transition_ids", ())  # type: ignore[arg-type]
+                effects["logistics_transition_ids"]  # type: ignore[arg-type]
             ),
-            settlement_ids=tuple(effects.get("settlement_ids", ())),  # type: ignore[arg-type]
+            settlement_ids=tuple(effects["settlement_ids"]),  # type: ignore[arg-type]
         ),
-        trainability_status=str(row.get("trainability_status", "trainable")),  # type: ignore[arg-type]
+        trainability_status=str(row["trainability_status"]),  # type: ignore[arg-type]
         non_trainable_reason=(
-            None
-            if row.get("non_trainable_reason") is None
-            else str(row["non_trainable_reason"])
+            None if row["non_trainable_reason"] is None else str(row["non_trainable_reason"])
         ),
     )

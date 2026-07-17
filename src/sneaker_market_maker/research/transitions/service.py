@@ -177,6 +177,8 @@ class TransitionAssembler:
             random_seed=input.lineage.random_seed,
             content_hash=digest,
             effects=input.effects,
+            trainability_status="trainable",
+            non_trainable_reason=None,
         )
 
 

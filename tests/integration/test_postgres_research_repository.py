@@ -39,6 +39,7 @@ from sneaker_market_maker.research.contracts.transition import (
     BehaviorPolicy,
     OfflineTransition,
     RewardRecord,
+    StepEffects,
 )
 
 DATABASE_URL = os.getenv("DATABASE_URL", "")
@@ -138,6 +139,16 @@ def _transition() -> OfflineTransition:
         code_revision="abc123",
         random_seed=7,
         content_hash="content-sha256",
+        effects=StepEffects(
+            order_ids=("order-1",),
+            fill_ids=("fill-1",),
+            fee_ledger_ids=("fee-1",),
+            inventory_transition_ids=("inventory-1",),
+            logistics_transition_ids=("logistics-1",),
+            settlement_ids=(),
+        ),
+        trainability_status="trainable",
+        non_trainable_reason=None,
     )
 
 
