@@ -1,4 +1,7 @@
+import json
+from dataclasses import asdict
 from datetime import datetime, timedelta, timezone
+from typing import Literal
 from uuid import UUID, uuid4
 
 import pytest
@@ -13,13 +16,13 @@ BASE_TIME = datetime(2026, 1, 1, tzinfo=timezone.utc)
 
 
 def manifest(
-    index: int,
+    index: float,
     *,
     episode_id: UUID | None = None,
     lineage: str | None = None,
     source_ids: tuple[str, ...] | None = None,
-    provenance: str = "historical",
-    declared_split: str = "train",
+    provenance: Literal["historical", "synthetic"] = "historical",
+    declared_split: Literal["train", "validation", "test"] = "train",
     checksum: str | None = None,
 ) -> EpisodeManifest:
     start = BASE_TIME + timedelta(days=index)
@@ -27,10 +30,10 @@ def manifest(
         episode_id=episode_id or uuid4(),
         start=start,
         end=start + timedelta(hours=12),
-        split=declared_split,  # type: ignore[arg-type]
+        split=declared_split,
         product_size_lineage=lineage or f"sku-{index}/size-10",
         source_record_ids=source_ids or (f"source-{index}",),
-        provenance=provenance,  # type: ignore[arg-type]
+        provenance=provenance,
         checksum=checksum or f"checksum-{index}",
     )
 
@@ -44,6 +47,48 @@ def config(**overrides: int) -> WalkForwardConfig:
     }
     values.update(overrides)
     return WalkForwardConfig(**values)
+
+
+class ScalerSpy:
+    def __init__(self) -> None:
+        self.fit_calls: list[tuple[UUID, ...]] = []
+
+    def fit(self, episode_ids: tuple[UUID, ...]) -> None:
+        self.fit_calls.append(episode_ids)
+
+
+class EvaluationAdapter:
+    def __init__(self, scaler: ScalerSpy) -> None:
+        self.scaler = scaler
+
+    def prepare(
+        self,
+        manifests: tuple[EpisodeManifest, ...],
+        split_config: WalkForwardConfig,
+    ) -> None:
+        folds = WalkForwardSplitter().split(manifests, split_config)
+        for fold in folds:
+            self.scaler.fit(fold.train_episode_ids)
+
+
+def export_round_trip(
+    manifests: tuple[EpisodeManifest, ...],
+) -> tuple[EpisodeManifest, ...]:
+    exported = json.dumps([asdict(item) for item in manifests], default=str)
+    rows = json.loads(exported)
+    return tuple(
+        EpisodeManifest(
+            episode_id=UUID(row["episode_id"]),
+            start=datetime.fromisoformat(row["start"]),
+            end=datetime.fromisoformat(row["end"]),
+            split=row["split"],
+            product_size_lineage=row["product_size_lineage"],
+            source_record_ids=tuple(row["source_record_ids"]),
+            provenance=row["provenance"],
+            checksum=row["checksum"],
+        )
+        for row in rows
+    )
 
 
 @pytest.mark.parametrize(
@@ -116,69 +161,70 @@ def test_rejects_lineage_crossing_fold_partitions_and_names_episodes() -> None:
     assert str(crossing.episode_id) in message
 
 
-def test_safety_validation_fails_before_scaler_fitting() -> None:
-    fit_calls: list[tuple[UUID, ...]] = []
+def test_scaler_adapter_receives_only_fold_training_ids() -> None:
+    manifests = tuple(manifest(index) for index in range(4))
+    expected = WalkForwardSplitter().split(manifests, config())[0].train_episode_ids
+    scaler = ScalerSpy()
+
+    EvaluationAdapter(scaler).prepare(manifests, config())
+
+    assert scaler.fit_calls == [expected]
+
+
+def test_safety_validation_fails_before_scaler_invocation() -> None:
+    scaler = ScalerSpy()
     first = manifest(0, source_ids=("duplicate",))
     duplicate = manifest(1, source_ids=("duplicate",))
 
     with pytest.raises(ValueError):
-        folds = WalkForwardSplitter().split(
+        EvaluationAdapter(scaler).prepare(
             (first, duplicate, manifest(2), manifest(3)),
             config(),
         )
-        fit_calls.append(folds[0].train_episode_ids)
 
-    assert fit_calls == []
-
-
-def test_fold_exposes_only_training_ids_for_scaler_fit() -> None:
-    manifests = tuple(manifest(index) for index in range(4))
-    fold = WalkForwardSplitter().split(manifests, config())[0]
-    fitted_episode_ids: list[UUID] = []
-
-    fitted_episode_ids.extend(fold.train_episode_ids)
-
-    assert tuple(fitted_episode_ids) == tuple(item.episode_id for item in manifests[:2])
-    assert not set(fitted_episode_ids) & set(fold.validation_episode_ids)
-    assert not set(fitted_episode_ids) & set(fold.test_episode_ids)
+    assert scaler.fit_calls == []
 
 
-def test_allows_train_and_declared_validation_stress_augmentation() -> None:
-    train_stress = manifest(0, provenance="synthetic", declared_split="train")
+def test_augmentation_does_not_shift_historical_windows_or_holdout_hashes() -> None:
+    historical = tuple(manifest(index) for index in (0, 2, 4, 6, 8, 10))
+    train_stress = manifest(1, provenance="synthetic", declared_split="train")
     validation_stress = manifest(
-        2,
+        3,
         provenance="synthetic",
         declared_split="validation",
     )
+    splitter = WalkForwardSplitter()
 
-    folds = WalkForwardSplitter().split(
-        (train_stress, manifest(1), validation_stress, manifest(3)),
+    baseline = splitter.split(historical, config())
+    augmented = splitter.split(
+        (*historical, train_stress, validation_stress),
         config(),
     )
 
-    assert folds[0].train_episode_ids[0] == train_stress.episode_id
-    assert folds[0].validation_episode_ids == (validation_stress.episode_id,)
+    assert len(augmented) == len(baseline) == 2
+    assert tuple(fold.test_episode_ids for fold in augmented) == tuple(
+        fold.test_episode_ids for fold in baseline
+    )
+    assert tuple(fold.frozen_holdout_hash for fold in augmented) == tuple(
+        fold.frozen_holdout_hash for fold in baseline
+    )
+    assert augmented[0].train_episode_ids == (
+        historical[0].episode_id,
+        train_stress.episode_id,
+        historical[1].episode_id,
+    )
+    assert augmented[0].validation_episode_ids == (
+        validation_stress.episode_id,
+        historical[2].episode_id,
+    )
 
 
-@pytest.mark.parametrize(
-    ("synthetic_index", "declared_split"),
-    [(2, "train"), (3, "test")],
-)
-def test_rejects_undeclared_validation_or_test_augmentation(
-    synthetic_index: int,
-    declared_split: str,
-) -> None:
-    manifests = [
-        manifest(
-            index,
-            provenance="synthetic" if index == synthetic_index else "historical",
-            declared_split=declared_split if index == synthetic_index else "train",
-        )
-        for index in range(4)
-    ]
+def test_rejects_synthetic_test_augmentation() -> None:
+    historical = tuple(manifest(index) for index in (0, 2, 4, 6))
+    synthetic_test = manifest(5, provenance="synthetic", declared_split="test")
 
     with pytest.raises(ValueError, match="synthetic"):
-        WalkForwardSplitter().split(manifests, config())
+        WalkForwardSplitter().split((*historical, synthetic_test), config())
 
 
 def test_holdout_hash_is_frozen_and_sensitive_to_test_checksum() -> None:
@@ -194,21 +240,29 @@ def test_holdout_hash_is_frozen_and_sensitive_to_test_checksum() -> None:
     assert len(first.frozen_holdout_hash) == 64
 
 
-def test_historical_labels_survive_mixed_exports() -> None:
+def test_historical_provenance_survives_mixed_json_export_round_trip() -> None:
     historical_train = manifest(0, provenance="historical")
     synthetic_train = manifest(1, provenance="synthetic", declared_split="train")
-    historical_validation = manifest(2, provenance="historical")
-    historical_test = manifest(3, provenance="historical")
+    historical_train_two = manifest(2, provenance="historical")
+    historical_validation = manifest(4, provenance="historical")
+    historical_test = manifest(6, provenance="historical")
     manifests = (
         historical_train,
         synthetic_train,
+        historical_train_two,
         historical_validation,
         historical_test,
     )
 
-    fold = WalkForwardSplitter().split(manifests, config())[0]
+    restored = export_round_trip(manifests)
 
-    assert historical_train.provenance == "historical"
-    assert historical_validation.provenance == "historical"
-    assert historical_test.provenance == "historical"
-    assert fold.test_episode_ids == (historical_test.episode_id,)
+    assert [item.provenance for item in restored] == [
+        "historical",
+        "synthetic",
+        "historical",
+        "historical",
+        "historical",
+    ]
+    assert WalkForwardSplitter().split(restored, config())[0].test_episode_ids == (
+        historical_test.episode_id,
+    )

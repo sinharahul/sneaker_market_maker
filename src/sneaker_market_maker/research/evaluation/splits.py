@@ -4,7 +4,9 @@ from __future__ import annotations
 
 import hashlib
 import json
+from bisect import bisect_left
 from collections.abc import Sequence
+from dataclasses import replace
 
 from sneaker_market_maker.research.contracts.experiment import (
     EpisodeManifest,
@@ -23,9 +25,22 @@ class WalkForwardSplitter:
         ordered = tuple(sorted(manifests, key=lambda item: item.start))
         self._assert_unique_sources(ordered)
         self._assert_non_overlapping(ordered)
-        folds = self._window(ordered, config)
+        historical = tuple(
+            manifest for manifest in ordered if manifest.provenance == "historical"
+        )
+        augmentation = tuple(
+            manifest for manifest in ordered if manifest.provenance == "synthetic"
+        )
+        self._assert_augmentation_declared(augmentation)
+        folds = self._window(historical, config)
+        folds = self._attach_augmentation(
+            folds,
+            historical,
+            augmentation,
+            ordered,
+            config,
+        )
         self._assert_lineage_isolated(folds, ordered)
-        self._assert_augmentation_isolated(folds, ordered)
         return folds
 
     @staticmethod
@@ -116,32 +131,56 @@ class WalkForwardSplitter:
                     )
 
     @staticmethod
-    def _assert_augmentation_isolated(
-        folds: Sequence[Fold],
-        manifests: Sequence[EpisodeManifest],
+    def _assert_augmentation_declared(
+        augmentation: Sequence[EpisodeManifest],
     ) -> None:
+        for manifest in augmentation:
+            if manifest.split not in ("train", "validation"):
+                raise ValueError(
+                    f"synthetic episode {manifest.episode_id} cannot enter historical holdout"
+                )
+
+    @staticmethod
+    def _attach_augmentation(
+        folds: Sequence[Fold],
+        historical: Sequence[EpisodeManifest],
+        augmentation: Sequence[EpisodeManifest],
+        manifests: Sequence[EpisodeManifest],
+        config: WalkForwardConfig,
+    ) -> tuple[Fold, ...]:
+        starts = [manifest.start for manifest in historical]
         by_id = {manifest.episode_id: manifest for manifest in manifests}
-        for fold in folds:
-            for episode_id in fold.train_episode_ids:
-                manifest = by_id[episode_id]
-                if manifest.provenance == "synthetic" and manifest.split != "train":
-                    raise ValueError(
-                        f"synthetic episode {episode_id} is not declared for training"
-                    )
-            for episode_id in fold.validation_episode_ids:
-                manifest = by_id[episode_id]
-                if (
-                    manifest.provenance == "synthetic"
-                    and manifest.split != "validation"
+        augmented: list[Fold] = []
+        for fold_index, fold in enumerate(folds):
+            offset = fold_index * config.step_episodes
+            train_end = offset + config.train_episodes
+            validation_end = train_end + config.validation_episodes
+            train_ids = list(fold.train_episode_ids)
+            validation_ids = list(fold.validation_episode_ids)
+            for manifest in augmentation:
+                insertion = bisect_left(starts, manifest.start)
+                if manifest.split == "train" and offset <= insertion <= train_end:
+                    train_ids.append(manifest.episode_id)
+                elif (
+                    manifest.split == "validation"
+                    and train_end <= insertion <= validation_end
                 ):
-                    raise ValueError(
-                        f"synthetic episode {episode_id} is not declared validation stress"
-                    )
-            for episode_id in fold.test_episode_ids:
-                if by_id[episode_id].provenance == "synthetic":
-                    raise ValueError(
-                        f"synthetic episode {episode_id} cannot enter historical holdout"
-                    )
+                    validation_ids.append(manifest.episode_id)
+            augmented.append(
+                replace(
+                    fold,
+                    train_episode_ids=tuple(
+                        sorted(train_ids, key=lambda episode_id: by_id[episode_id].start)
+                    ),
+                    validation_episode_ids=tuple(
+                        sorted(
+                            validation_ids,
+                            key=lambda episode_id: by_id[episode_id].start,
+                        )
+                    ),
+                )
+            )
+        return tuple(augmented)
 
     @staticmethod
     def _holdout_hash(manifests: Sequence[EpisodeManifest]) -> str:

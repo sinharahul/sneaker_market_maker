@@ -48,3 +48,30 @@ Implemented deterministic leakage-safe walk-forward fold generation.
 
 - Repository-wide Ruff still reports the pre-existing `UP038` violation in
   `src/sneaker_market_maker/pipeline.py:59`; all Task 10 files pass focused Ruff.
+
+## Fix
+
+- Constructed rolling offsets, partition counts, test IDs, and frozen holdout hashes from
+  historical manifests only.
+- Attached synthetic training and declared validation-stress episodes afterward at their
+  chronological insertion points without consuming historical counts.
+- Replaced tautological checks with a scaler spy and evaluation adapter that verify exact
+  training-ID calls and zero calls when split safety validation fails.
+- Added a real JSON mixed-manifest export/import round-trip and verified every historical
+  provenance label and historical holdout identity survive.
+
+Exact evidence:
+
+- Red regression run:
+  `.venv/bin/python -m pytest tests/research/evaluation/test_splits.py -q`
+  → `2 failed, 16 passed in 0.45s`.
+- Focused tests:
+  `.venv/bin/python -m pytest tests/research/evaluation/test_splits.py -q`
+  → `18 passed in 0.45s`.
+- Affected research tests:
+  `.venv/bin/python -m pytest tests/research -q`
+  → `91 passed in 2.14s`.
+- Focused Ruff:
+  `.venv/bin/python -m ruff check src/sneaker_market_maker/research/evaluation/splits.py tests/research/evaluation/test_splits.py`
+  → `All checks passed!`.
+- `git diff --check` passed; the modified source and test files are `205` and `268` lines.
