@@ -137,6 +137,3 @@ class OfflineTransition:
             or not self.content_hash.strip()
         ):
             raise ValueError("provenance is incomplete")
-
-
-DecisionPoint = OfflineTransition
