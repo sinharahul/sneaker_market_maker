@@ -128,9 +128,24 @@ def upgrade() -> None:
         sa.Column("discount", sa.Float(), nullable=False),
         sa.Column("action_mask", jsonb(), nullable=False),
         sa.Column("action_bounds", jsonb(), nullable=False),
-        sa.Column("state_schema_version", sa.String(128), nullable=False),
-        sa.Column("action_schema_version", sa.String(128), nullable=False),
-        sa.Column("reward_schema_version", sa.String(128), nullable=False),
+        sa.Column(
+            "state_schema_version",
+            sa.String(128),
+            sa.ForeignKey("mdp_state_schemas.version"),
+            nullable=False,
+        ),
+        sa.Column(
+            "action_schema_version",
+            sa.String(128),
+            sa.ForeignKey("action_schemas.version"),
+            nullable=False,
+        ),
+        sa.Column(
+            "reward_schema_version",
+            sa.String(128),
+            sa.ForeignKey("reward_schemas.version"),
+            nullable=False,
+        ),
         sa.Column("source_record_ids", jsonb(), nullable=False),
         sa.Column("provenance_label", sa.String(32), nullable=False),
         sa.Column("dataset_version", sa.String(128), nullable=False),
@@ -140,6 +155,10 @@ def upgrade() -> None:
         sa.Column("code_revision", sa.String(128), nullable=False),
         sa.Column("random_seed", sa.BigInteger(), nullable=False),
         sa.Column("content_hash", sa.String(128), nullable=False),
+        sa.ForeignKeyConstraint(
+            ["episode_id", "decision_index"],
+            ["decision_points.episode_id", "decision_points.decision_index"],
+        ),
         sa.UniqueConstraint(
             "episode_id",
             "decision_index",
