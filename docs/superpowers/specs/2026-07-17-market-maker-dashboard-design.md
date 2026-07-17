@@ -1,7 +1,12 @@
 # Sneaker Market Maker Dashboard Design
 
 **Date:** 2026-07-17
-**Status:** Validated for implementation planning
+**Status:** Validated base design; Deep Bellman details superseded
+
+The modular market-maker and dashboard design remains approved. Its
+quantitative baseline remains the version 1 direct-policy MLP. The Deep
+Bellman/RL research-boundary details are superseded by the separately approved
+`2026-07-17-deep-bellman-pfhedge-design.md`.
 
 ## 1. Purpose
 
@@ -27,45 +32,45 @@ override deterministic controls.
 - A React dashboard for control, status, and inspection.
 - A Python/FastAPI backend implemented as a modular event-driven monolith.
 - REST commands for user intent and a WebSocket stream for state and domain
-  events.
+events.
 - An in-process typed event bus connecting independently testable modules.
 - StockX historical replay as the first and authoritative execution-testing
-  source, plus versioned StockX-shaped fixtures for local development.
+source, plus versioned StockX-shaped fixtures for local development.
 - Jordan 1 Retro and Nike Dunk Low only, identified by an explicit,
-  version-controlled product-family allowlist; other products fail validation.
+version-controlled product-family allowlist; other products fail validation.
 - A continuous quote/revise/cancel/replace paper market-making loop.
 - Paper order matching, fills, physical inventory state, cash accounting, fees,
-  slippage, realized P&L, and mark-to-market unrealized P&L.
+slippage, realized P&L, and mark-to-market unrealized P&L.
 - A richer validated domain snapshot plus a separately versioned five-feature
-  model vector: `highest_bid`, `lowest_ask`, `days_since_release`,
-  `volatility_48h`, and `fee_rate`.
+model vector: `highest_bid`, `lowest_ask`, `days_since_release`,
+`volatility_48h`, and `fee_rate`.
 - A PyTorch `SneakerHedgingNet`, entropic-risk research objective, reproducible
-  training/evaluation pipeline, model registry, shadow inference, and benchmark
-  approval workflow.
+training/evaluation pipeline, model registry, shadow inference, and benchmark
+approval workflow.
 - Seeded GBM scenarios with explicit discrete restock and event shocks for
-  stress testing and model training augmentation, never as authoritative
-  evidence of execution quality.
+stress testing and model training augmentation, never as authoritative
+evidence of execution quality.
 - PostgreSQL as the authoritative store, including an append-only audit event
-  log.
+log.
 - Asynchronous Discord and Slack operational alerts with bounded timeout,
-  retry, redaction, and durable delivery status.
+retry, redaction, and durable delivery status.
 - Prometheus metrics and optional operator-supplied Grafana dashboards.
 - Deterministic recovery, command idempotency, observability, and a complete
-  automated test strategy.
+automated test strategy.
 
 ### Explicitly out of scope for version 1
 
 - TLS fingerprinting, fingerprint rotation, Cloudflare bypass, CAPTCHA bypass,
-  proxy rotation for ban evasion, or related circumvention techniques.
+proxy rotation for ban evasion, or related circumvention techniques.
 - Undocumented or private marketplace API use.
 - Scraping that violates marketplace terms or access controls.
 - Live order submission, modification, cancellation, or account automation.
 - Custody or movement of real funds.
 - Products outside Jordan 1 Retro and Nike Dunk Low.
 - Model authority to approve orders, bypass gates, directly place orders, or
-  control execution.
+control execution.
 - Any claim that the version 1 sigmoid MLP and entropic loss constitute Deep
-  Bellman Hedging or reinforcement learning.
+Bellman Hedging or reinforcement learning.
 
 The future integration seam accepts only a documented, authorized marketplace
 adapter. Adding that adapter requires a separate design and safety review; it
@@ -78,30 +83,30 @@ The first release is successful when an operator can:
 1. Start, pause, resume, and stop a deterministic historical replay.
 2. Enable or disable the paper strategy without restarting the service.
 3. Watch the engine issue and continuously maintain genuine paper quotes rather
-   than merely display hypothetical opportunities.
+  than merely display hypothetical opportunities.
 4. See every quote decision, order transition, fill, inventory transition, fee,
-   slippage charge, and P&L change reflected in the dashboard and audit log.
+  slippage charge, and P&L change reflected in the dashboard and audit log.
 5. Confirm that total open buy-order exposure never exceeds 60% of the initial
-   $2,500 paper capital, and that neither reserved nor spent capital can make
+  $2,500 paper capital, and that neither reserved nor spent capital can make
    available cash negative.
 6. Restart the backend and recover to the same authoritative state without
-   duplicated commands, orders, fills, accounting entries, or inventory.
+  duplicated commands, orders, fills, accounting entries, or inventory.
 7. Re-run a seeded replay and obtain the same ordered decisions, fills, and
-   terminal portfolio state.
+  terminal portfolio state.
 8. Trace each valid domain snapshot to an immutable, schema-versioned five-
-   feature vector; malformed or incomplete payloads are quarantined and never
+  feature vector; malformed or incomplete payloads are quarantined and never
    zero-filled.
 9. Reproduce a `SneakerHedgingNet` training/evaluation run from its dataset,
-   feature schema, code, configuration, seed, and artifact references.
+  feature schema, code, configuration, seed, and artifact references.
 10. Compare shadow-model outputs with deterministic decisions and approved
-    baselines without permitting the model to alter orders.
+  baselines without permitting the model to alter orders.
 11. Demonstrate that any later advisory mode can affect only allocation within
-    already-approved limits and quote skew, and that fee, capital, liquidity,
+  already-approved limits and quote skew, and that fee, capital, liquidity,
     inventory, stale-data, price-sanity, and exposure gates remain authoritative.
 12. Use StockX historical replay for execution benchmarks and separately report
-    GBM/restock/event-shock stress results without conflating the two.
+  GBM/restock/event-shock stress results without conflating the two.
 13. Observe Prometheus metrics and inspect redacted Discord/Slack alert delivery
-    attempts, including timeout, retry, success, and terminal failure states.
+  attempts, including timeout, retry, success, and terminal failure states.
 
 ## 4. Architecture
 
@@ -350,33 +355,16 @@ visible and auditable but cannot block event processing or paper execution.
 
 ### Deep Bellman Hedging / RL research boundary
 
-The specified `SneakerHedgingNet` is a sigmoid MLP trained with an entropic-risk
-loss. That is supervised or direct policy-scoring research, **not yet Deep
-Bellman Hedging or reinforcement learning**. The project must not make either
-claim based on the version 1 model.
+The specified `SneakerHedgingNet` remains a sigmoid MLP trained with an
+entropic-risk loss. It is a direct policy-scoring baseline, not Bellman IQL or
+reinforcement learning, and the project must not relabel it.
 
-Before such a claim, a separate approved design must define and implement:
-
-- an MDP state containing at least time, product/size market state, open orders,
-  physical inventory lifecycle, cash/reservations, fee state, stale-data state,
-  and relevant exogenous event history;
-- an action space for bounded quote offsets/skew, allocation or no-op/cancel
-  choices, with deterministic safety gates outside the learned policy;
-- a step reward based on fee- and slippage-adjusted portfolio P&L plus explicit
-  inventory, capital, turnover, drawdown, stale-quote, and terminal liquidation
-  penalties, with a declared entropic or other risk-sensitive objective;
-- a value function, Q-function, or stochastic policy objective and Bellman
-  recursion/training algorithm, rather than only terminal sigmoid output;
-- transition tuples containing state, action, propensity/behavior-policy
-  metadata, next state, reward, terminal flag, timing, and execution outcomes
-  from historical replay or a separately validated simulator;
-- benchmarks against the deterministic strategy, no-model and simple heuristic
-  baselines, and the version 1 MLP under identical historical holdouts, fees,
-  latency assumptions, and deterministic gates; and
-- offline evaluation covering walk-forward splits, leakage controls, multiple
-  seeds, confidence intervals, stress regimes, off-policy evaluation where
-  applicable, action-support checks, ablations, and tail-risk/inventory/capital
-  metrics before shadow deployment.
+The separate approved Deep Bellman subsystem design now defines the MDP,
+distributional IQL losses, PFHedge baseline, transition schema, evaluation,
+registry, and bounded advisory path. That document is authoritative for those
+topics. The boundaries defined here remain unchanged: deterministic gates stay
+final, training is offline, learned output cannot execute, and historical and
+synthetic evidence remain separately labeled.
 
 ## 6. Events and Data Flow
 
@@ -384,50 +372,50 @@ Typed events are immutable dataclasses or validated models with explicit schema
 versions. Representative event families are:
 
 - Simulation: `ReplayLoaded`, `ReplayStarted`, `ReplayPaused`,
-  `ReplayResumed`, `ReplayStopped`, `SimulationClockAdvanced`.
+`ReplayResumed`, `ReplayStopped`, `SimulationClockAdvanced`.
 - Market data: `MarketObservationReceived`, `MarketDataRejected`,
-  `MarketDataBecameStale`, `FeatureVectorCreated`,
-  `FeatureVectorRejected`.
+`MarketDataBecameStale`, `FeatureVectorCreated`,
+`FeatureVectorRejected`.
 - Strategy: `QuoteCalculated`, `QuoteSkipped`, `QuoteCancelRequested`,
-  `QuoteReplaceRequested`.
+`QuoteReplaceRequested`.
 - Risk: `OrderRiskApproved`, `OrderRiskRejected`, `CapitalReserved`,
-  `CapitalReleased`.
+`CapitalReleased`.
 - Model research: `TrainingRunStarted`, `TrainingRunCompleted`,
-  `EvaluationRunCompleted`, `ModelVersionRegistered`,
-  `ModelPromotionApproved`, `ModelRolledBack`.
+`EvaluationRunCompleted`, `ModelVersionRegistered`,
+`ModelPromotionApproved`, `ModelRolledBack`.
 - Model inference: `InferenceRequested`, `InferenceCompleted`,
-  `InferenceRejected`, `AdvisoryApplied`, `AdvisoryIgnored`.
+`InferenceRejected`, `AdvisoryApplied`, `AdvisoryIgnored`.
 - Execution: `PaperOrderAccepted`, `PaperOrderRevised`,
-  `PaperOrderCancelled`, `PaperOrderReplaced`, `PaperOrderFilled`.
+`PaperOrderCancelled`, `PaperOrderReplaced`, `PaperOrderFilled`.
 - Inventory: `InventoryPurchased`, `InventoryTransitioned`,
-  `InventoryReserved`, `InventoryReleased`.
+`InventoryReserved`, `InventoryReleased`.
 - Accounting: `FeeCharged`, `SettlementCompleted`, `PnLMarked`.
 - Operations: `CommandAccepted`, `CommandRejected`, `ComponentDegraded`,
-  `ComponentRecovered`, `AlertQueued`, `WebhookDeliveryAttempted`,
-  `WebhookDelivered`, `WebhookDeliveryFailed`.
+`ComponentRecovered`, `AlertQueued`, `WebhookDeliveryAttempted`,
+`WebhookDelivered`, `WebhookDeliveryFailed`.
 
 The core loop is:
 
 1. StockX replay commits a validated normalized market observation; malformed,
-   unsupported, or incomplete input is quarantined and processing stops for that
+  unsupported, or incomplete input is quarantined and processing stops for that
    record.
 2. Feature extraction commits the versioned five-feature vector linked to the
-   richer snapshot.
+  richer snapshot.
 3. The event bus delivers the observation to quote and projection handlers and
-   independently requests shadow or advisory inference when configured.
+  independently requests shadow or advisory inference when configured.
 4. The quote engine computes deterministic desired bid and inventory-backed ask
-   intents. In advisory mode only, a timely valid recommendation may apply a
+  intents. In advisory mode only, a timely valid recommendation may apply a
    bounded allocation or quote-skew adjustment.
 5. Deterministic risk gates approve or reject each order-changing intent after
-   any advisory adjustment.
+  any advisory adjustment.
 6. Paper execution atomically applies approved intents and capital or inventory
-   reservations.
+  reservations.
 7. Later historical market or lifecycle events cause fills, cancellations, replacements,
-   inventory transitions, settlements, and P&L updates.
+  inventory transitions, settlements, and P&L updates.
 8. Committed events update projections, metrics and alert subscriptions, and are
-   streamed to the dashboard.
+  streamed to the dashboard.
 9. The loop repeats on each relevant market event and on a configurable quote
-   maintenance tick, enabling cancellation or replacement even when no trade
+  maintenance tick, enabling cancellation or replacement even when no trade
    occurs.
 
 Handlers must not publish observable follow-up events until the database
@@ -446,31 +434,31 @@ operator command.
 PostgreSQL is authoritative. Core tables include:
 
 - simulation runs, historical replay and synthetic scenario manifests, clock
-  state, seeds, checksums, and strategy configuration;
+state, seeds, checksums, and strategy configuration;
 - immutable source replay records or redacted raw payloads with checksums,
-  normalized market observations, and quarantined data-quality failures;
+normalized market observations, and quarantined data-quality failures;
 - immutable feature-schema versions and feature vectors linked to source
-  observations;
+observations;
 - quote decisions and risk decisions;
 - immutable model versions, scaler/artifact references and hashes, model status,
-  and audited promotion/rollback records;
+and audited promotion/rollback records;
 - training runs, dataset/split lineage, configurations, seeds, checkpoints,
-  metrics, and terminal status;
+metrics, and terminal status;
 - evaluation runs, baseline comparisons, historical holdout and synthetic stress
-  metrics, benchmark verdicts, and report artifacts;
+metrics, benchmark verdicts, and report artifacts;
 - inference decisions containing observation/vector/model/scaler references,
-  operating mode, output, interpreted recommendation, latency, fallback/error
-  reason, and whether bounded advice was applied;
+operating mode, output, interpreted recommendation, latency, fallback/error
+reason, and whether bounded advice was applied;
 - paper orders, order revisions, replacement links, and fills;
 - capital reservations, immutable accounting entries, and settlements;
 - physical inventory lots and inventory transitions;
 - current read projections;
 - alert definitions and destinations with secret references rather than webhook
-  URLs;
+URLs;
 - webhook deliveries and immutable delivery attempts with redacted request
-  metadata, status, timing, retry schedule, and sanitized outcomes; and
+metadata, status, timing, retry schedule, and sanitized outcomes; and
 - append-only audit events for domain, operator, model-governance, data-quality,
-  notification, and recovery activity.
+notification, and recovery activity.
 
 The audit table contains globally ordered event IDs, event type and schema
 version, aggregate ID and version, correlation and causation IDs, command
@@ -513,12 +501,12 @@ At startup, the service:
 4. resumes them idempotently;
 5. reconciles cash, reservations, orders, fills, and inventory;
 6. reconciles feature/model lineage and resumes unfinished training,
-   evaluation, inference, and webhook work idempotently where safe;
+  evaluation, inference, and webhook work idempotently where safe;
 7. keeps strategy execution disabled if core reconciliation fails and always
-   falls back from advisory to deterministic behavior if model state is invalid;
+  falls back from advisory to deterministic behavior if model state is invalid;
    and
 8. exposes recovery status and reason through REST, WebSocket, metrics, and
-   health checks.
+  health checks.
 
 A paused or stopped run remains paused or stopped after restart. An active run
 may resume only after successful reconciliation and according to an explicit
@@ -554,13 +542,13 @@ REST endpoints are organized around commands and read models:
 - simulation load, start, pause, resume, stop, reset, speed, and seed;
 - strategy enable, disable, and configuration;
 - model version, feature schema, training/evaluation run, benchmark report,
-  shadow inference, and advisory status read models;
+shadow inference, and advisory status read models;
 - audited commands to enable/disable shadow mode, approve benchmark-qualified
-  advisory promotion, or roll back to deterministic-only behavior;
+advisory promotion, or roll back to deterministic-only behavior;
 - explicit paper-order cancellation for operator control;
 - status, configuration, capital, active quotes, order history, fills,
-  inventory, P&L, replay/scenario progress, data-quality failures, inference
-  comparisons, alert delivery status, and audit events;
+inventory, P&L, replay/scenario progress, data-quality failures, inference
+comparisons, alert delivery status, and audit events;
 - liveness, readiness, and detailed component health.
 
 Commands return a command ID, status, correlation ID, and either the resulting
@@ -588,37 +576,37 @@ external access controls as the REST API.
 The dashboard is an operational control plane with these areas:
 
 - **Controls:** load replay, set speed and seed, start/pause/resume/stop the
-  simulator, enable/disable the strategy, control shadow mode, review and
-  confirm qualified advisory promotion or rollback, and issue paper cancels.
+simulator, enable/disable the strategy, control shadow mode, review and
+confirm qualified advisory promotion or rollback, and issue paper cancels.
 - **System status:** backend, database, event bus, simulator, strategy, recovery,
-  WebSocket connection, simulation clock, replay progress, historical/synthetic
-  source kind, model mode, alert delivery, and stale-data state.
+WebSocket connection, simulation clock, replay progress, historical/synthetic
+source kind, model mode, alert delivery, and stale-data state.
 - **Capital and risk:** initial capital, available cash, reserved bid principal,
-  expected fees/slippage reserve, pending settlement, the $1,500 open-bid cap,
-  current utilization, and recent risk rejections.
+expected fees/slippage reserve, pending settlement, the $1,500 open-bid cap,
+current utilization, and recent risk rejections.
 - **Quotes and orders:** desired versus active bid/ask, quote age, revisions,
-  cancellation/replacement reason, order state, and inventory backing for asks.
+cancellation/replacement reason, order state, and inventory backing for asks.
 - **Fills:** side, product and size, quantity, quote and execution prices,
-  slippage, fees, source event, and timestamp.
+slippage, fees, source event, and timestamp.
 - **Physical inventory:** lot identity, product/size, lifecycle state, age,
-  landed cost, reservation, expected arrival/settlement, and exception reason.
+landed cost, reservation, expected arrival/settlement, and exception reason.
 - **P&L:** realized, unrealized, gross spread, fees, slippage, inventory value,
-  and a time series keyed to simulation time.
+and a time series keyed to simulation time.
 - **Simulator:** dataset metadata, seed, speed, current timestamp, event counts,
-  source-kind label, shock definition, and deterministic replay or scenario
-  controls.
+source-kind label, shock definition, and deterministic replay or scenario
+controls.
 - **Model research:** active feature/model/scaler versions, training and
-  evaluation status, dataset lineage, historical benchmark and synthetic stress
-  results, approval record, and artifact hashes.
+evaluation status, dataset lineage, historical benchmark and synthetic stress
+results, approval record, and artifact hashes.
 - **Shadow/advisory comparison:** deterministic base decision, model output,
-  bounded recommendation, whether it was ignored or applied, final gated
-  decision, latency, fallback reason, and per-model aggregate performance.
+bounded recommendation, whether it was ignored or applied, final gated
+decision, latency, fallback reason, and per-model aggregate performance.
 - **Data quality:** quarantined malformed or unsupported payloads with safe
-  reason codes and source references, never fabricated zero values.
+reason codes and source references, never fabricated zero values.
 - **Alerts:** redacted Discord/Slack destination label, logical alert, attempt
-  count, delivery status, sanitized failure, and next retry time.
+count, delivery status, sanitized failure, and next retry time.
 - **Audit/activity:** correlated operator commands, decisions, state
-  transitions, errors, and recovery events.
+transitions, errors, and recovery events.
 
 Controls are disabled when their command is illegal in the current state, but
 the backend remains the final authority. Destructive simulation reset requires
@@ -635,34 +623,34 @@ the dashboard states that deterministic gates remain authoritative.
 ## 12. Error Handling
 
 - Fixture and market-data validation failures are quarantined with a reason;
-  required snapshot or feature values that are absent, malformed, non-finite,
-  unsupported, or out of range are never zero-filled or defaulted.
+required snapshot or feature values that are absent, malformed, non-finite,
+unsupported, or out of range are never zero-filled or defaulted.
 - Stale, missing, crossed, or nonsensical markets fail closed for new quotes and
-  trigger cancellation of unsafe active quotes.
+trigger cancellation of unsafe active quotes.
 - Unsupported product families fail closed before feature extraction.
 - Risk rejections are expected domain outcomes, not server errors, and include
-  stable codes and relevant limit/current/proposed values.
+stable codes and relevant limit/current/proposed values.
 - Missing or incompatible model/feature/scaler versions, inference timeout, and
-  invalid model outputs record a failed inference and use the unmodified
-  deterministic strategy; they never produce permissive defaults.
+invalid model outputs record a failed inference and use the unmodified
+deterministic strategy; they never produce permissive defaults.
 - Training or evaluation failure leaves the existing model status unchanged.
-  A benchmark policy is versioned and frozen before evaluation; promotion fails
-  unless all required historical-holdout, tail-risk, capital, inventory,
-  turnover, and operational thresholds pass against the registered baselines.
+A benchmark policy is versioned and frozen before evaluation; promotion fails
+unless all required historical-holdout, tail-risk, capital, inventory,
+turnover, and operational thresholds pass against the registered baselines.
 - Invalid order or inventory transitions are rejected atomically and audited.
 - Database failure prevents acknowledgement of uncommitted commands. The
-  strategy enters a degraded, no-new-orders state until authoritative state is
-  available and reconciled.
+strategy enters a degraded, no-new-orders state until authoritative state is
+available and reconciled.
 - Event handler failures use bounded retries with structured diagnostics.
-  Exhaustion marks the component degraded and prevents dependent strategy
-  actions; events remain recoverable from the audit log.
+Exhaustion marks the component degraded and prevents dependent strategy
+actions; events remain recoverable from the audit log.
 - Discord/Slack timeout or error follows the destination's bounded retry policy.
-  Terminal failure is persisted, measured, and surfaced locally without
-  blocking the triggering transaction or recursively alerting the same failure.
+Terminal failure is persisted, measured, and surfaced locally without
+blocking the triggering transaction or recursively alerting the same failure.
 - Unknown fee schedules, rounding failures, or accounting imbalance halt the
-  affected flow and fail readiness rather than estimate.
+affected flow and fail readiness rather than estimate.
 - UI errors retain the command correlation ID, explain whether a retry is safe,
-  and never imply success before server confirmation.
+and never imply success before server confirmation.
 
 ## 13. Observability
 
@@ -702,127 +690,127 @@ Operational invariants are continuously checked:
 - each active ask has distinct sellable inventory backing;
 - each fill maps to exactly one order and accounting effect;
 - each feature vector has exactly five ordered values and references a valid
-  snapshot and schema version;
+snapshot and schema version;
 - advisory influence references a passing benchmark approval and remains within
-  configured allocation/skew bounds;
+configured allocation/skew bounds;
 - final order intents pass every deterministic gate regardless of model mode;
 - aggregate versions are contiguous; and
 - projection positions do not exceed the committed audit-event position; and
 - webhook attempts contain no configured secrets and follow legal delivery
-  transitions.
+transitions.
 
 ## 14. Test Strategy
 
 ### Unit tests
 
 - Quote calculations, threshold-based revise/cancel/replace behavior, and
-  inventory-backed ask rules.
+inventory-backed ask rules.
 - Risk limits, especially exact values below, at, and above the $1,500 bid cap.
 - Fee, slippage, decimal rounding, capital reservation, cost-basis, settlement,
-  and realized/unrealized P&L calculations.
+and realized/unrealized P&L calculations.
 - All order and inventory lifecycle transitions, including illegal transitions.
 - StockX normalization, family allowlisting, exact five-feature ordering and
-  versioning, and rejection of missing, malformed, non-finite, zero-filled,
-  unsupported, or stale observations.
+versioning, and rejection of missing, malformed, non-finite, zero-filled,
+unsupported, or stale observations.
 - `SneakerHedgingNet` tensor shapes, deterministic seeded initialization,
-  sigmoid output bounds, stable entropic-loss calculations, and failure on
-  incompatible feature/scaler versions.
+sigmoid output bounds, stable entropic-loss calculations, and failure on
+incompatible feature/scaler versions.
 - Advisory clamping and proof that model output cannot override fee, capital,
-  liquidity, inventory, stale-data, price-sanity, or exposure rejections.
+liquidity, inventory, stale-data, price-sanity, or exposure rejections.
 - Webhook redaction, timeout classification, backoff, retry exhaustion,
-  idempotency, and delivery-state transitions.
+idempotency, and delivery-state transitions.
 - Event schemas, version handling, idempotency, and deterministic identifiers.
 
 ### Property and invariant tests
 
 - Random command and event sequences never produce negative available cash,
-  excess open-bid exposure, double-reserved inventory, duplicate fills, or an
-  unbalanced ledger.
+excess open-bid exposure, double-reserved inventory, duplicate fills, or an
+unbalanced ledger.
 - Buy slippage never improves and sell slippage never improves execution.
 - Replaying the same ordered events is idempotent.
 - Rebuilt projections equal incrementally maintained projections.
 - Arbitrary model outputs, including NaN, Inf, extremes, errors, and timeouts,
-  never turn a deterministic rejection into an approval or exceed configured
-  allocation/skew bounds.
+never turn a deterministic rejection into an approval or exceed configured
+allocation/skew bounds.
 - Arbitrary malformed payloads never create snapshots, vectors, quotes, or
-  orders and never silently substitute zero.
+orders and never silently substitute zero.
 
 ### Integration tests
 
 - FastAPI, event bus, and PostgreSQL transaction boundaries using a real test
-  database.
+database.
 - Duplicate and conflicting idempotency keys.
 - Atomic order replacement and reservation transfer.
 - Fill-to-inventory-to-sale-to-settlement accounting.
 - Handler retry, database interruption, startup reconciliation, and projection
-  rebuild.
+rebuild.
 - WebSocket snapshot, ordered updates, reconnect catch-up, gap detection,
-  heartbeat, and slow-client resync.
+heartbeat, and slow-client resync.
 - Snapshot-to-vector-to-inference lineage and shadow/advisory persistence using
-  a real test database.
+a real test database.
 - Model registration, benchmark rejection, audited promotion, rollback, and
-  deterministic fallback after restart or artifact incompatibility.
+deterministic fallback after restart or artifact incompatibility.
 - Asynchronous Discord/Slack dispatch using local fake servers for success,
-  timeout, retryable error, terminal error, deduplication, redaction, and
-  recovery of pending attempts.
+timeout, retryable error, terminal error, deduplication, redaction, and
+recovery of pending attempts.
 - Prometheus endpoint format, bounded labels, and representative metric changes.
 
 ### Deterministic simulation tests
 
 - Golden StockX historical replay scenarios limited to Jordan 1 Retro and Nike
-  Dunk Low.
+Dunk Low.
 - Seeded replays produce identical decisions, fills, audit-event order, and
-  terminal portfolio state.
+terminal portfolio state.
 - Replay speed changes wall-clock duration without changing simulation results.
 - Pausing, restarting, and resuming preserves the simulation position and does
-  not duplicate effects.
+not duplicate effects.
 - Seeded GBM plus restock/event shocks are reproducible and remain labeled
-  synthetic through events, storage, metrics, API, and dashboard.
+synthetic through events, storage, metrics, API, and dashboard.
 - Historical replay, not synthetic scenarios, determines execution benchmark
-  verdicts. Walk-forward splits enforce time ordering and product/size leakage
-  checks.
+verdicts. Walk-forward splits enforce time ordering and product/size leakage
+checks.
 
 ### Model research and offline evaluation tests
 
 - Training is reproducible from dataset, feature/scaler, code, config, seed, and
-  artifact references; corrupted or mismatched artifacts fail closed.
+artifact references; corrupted or mismatched artifacts fail closed.
 - Entropic-risk evaluation is numerically stable and reports ordinary and tail
-  metrics so loss improvement cannot conceal worse benchmark behavior.
+metrics so loss improvement cannot conceal worse benchmark behavior.
 - The deterministic strategy, no-model/simple heuristic baselines, and MLP run
-  under identical fees, slippage, latency, gates, and historical holdouts.
+under identical fees, slippage, latency, gates, and historical holdouts.
 - Benchmark policies are immutable during a run, require every configured gate,
-  and cannot be bypassed by registering or manually selecting an artifact.
+and cannot be bypassed by registering or manually selecting an artifact.
 - Shadow mode produces no differences in placed/revised/cancelled paper orders
-  compared with deterministic-only replay.
+compared with deterministic-only replay.
 - Advisory mode changes only bounded allocation/skew fields, preserves the base
-  decision, and leaves final risk authority deterministic.
+decision, and leaves final risk authority deterministic.
 - No test, API label, report, or dashboard copy claims Deep Bellman Hedging or RL
-  without the separately required MDP, Bellman/policy training, transition data,
-  baselines, and offline evaluation.
+without the separately required MDP, Bellman/policy training, transition data,
+baselines, and offline evaluation.
 
 ### Frontend tests
 
 - Component tests for controls, status, capital/risk, quotes, fills, inventory,
-  P&L, simulator, model research/comparison, data quality, alert delivery, and
-  error states.
+P&L, simulator, model research/comparison, data quality, alert delivery, and
+error states.
 - Reducer tests for snapshots, ordered events, duplicate events, gaps, and
-  resynchronization.
+resynchronization.
 - API contract tests generated from or checked against the FastAPI schema.
 - Accessibility tests for keyboard operation, labels, status announcements,
-  focus behavior, and non-color-only state indicators.
+focus behavior, and non-color-only state indicators.
 - End-to-end tests for the complete operator workflow, disconnection recovery,
-  risk rejection visibility, inventory lifecycle, deterministic replay, shadow
-  comparison, qualified advisory promotion/rollback, and alert failure.
+risk rejection visibility, inventory lifecycle, deterministic replay, shadow
+comparison, qualified advisory promotion/rollback, and alert failure.
 
 ### Safety and scope tests
 
 - Static configuration and dependency checks verify that version 1 has no live
-  order endpoint, marketplace credential flow, TLS fingerprinting, Cloudflare
-  or CAPTCHA bypass, proxy rotation for ban evasion, protection-circumvention
-  code, or undocumented/private API integration.
+order endpoint, marketplace credential flow, TLS fingerprinting, Cloudflare
+or CAPTCHA bypass, proxy rotation for ban evasion, protection-circumvention
+code, or undocumented/private API integration.
 - Adapter contract tests use only local fakes. A network-deny test ensures the
-  default test and simulation paths require no marketplace network access;
-  explicit local fake webhook tests are the only network-enabled exception.
+default test and simulation paths require no marketplace network access;
+explicit local fake webhook tests are the only network-enabled exception.
 
 ## 15. Delivery Boundaries
 
@@ -843,6 +831,7 @@ integrated end to end for the two allowlisted families. Advisory behavior is
 permitted only after benchmark approval and may remain disabled at release.
 
 A future authorized data adapter is an extension point, not a version 1
-deliverable. Deep Bellman Hedging/RL, broader product coverage, and live order
-submission each require separate approved designs. Live order submission
+deliverable. The separately approved Deep Bellman subsystem remains outside
+version 1 and is governed by its own design. Broader product coverage and live
+order submission each require separate approved designs. Live order submission
 remains excluded regardless of adapter availability or model performance.
