@@ -13,8 +13,15 @@ def behavior(
     *,
     deterministic: bool = False,
     missing: bool = False,
+    zero_propensity: bool = False,
 ) -> BehaviorPolicy:
-    propensities = (None, None, None) if deterministic or missing else (0.5, -0.2, -0.9)
+    no_propensities = deterministic or missing or zero_propensity
+    propensities = (None, None, None) if no_propensities else (0.5, -0.2, -0.9)
+    missingness_reason = None
+    if zero_propensity:
+        missingness_reason = "zero joint propensity"
+    elif deterministic or missing:
+        missingness_reason = "not logged"
     return BehaviorPolicy(
         version="behavior-v1",
         collection_mode="logged",
@@ -24,7 +31,7 @@ def behavior(
         deterministic=deterministic,
         support_method="joint-density",
         support_version="support-v1",
-        missingness_reason="not logged" if deterministic or missing else None,
+        missingness_reason=missingness_reason,
     )
 
 
@@ -58,6 +65,11 @@ def test_trustworthy_nonzero_joint_propensities_permit_wis() -> None:
             "joint behavior propensity is missing",
         ),
         (
+            (behavior(zero_propensity=True),),
+            support(trustworthy=False),
+            "joint behavior propensity is zero",
+        ),
+        (
             (behavior(),),
             support(trustworthy=False),
             "joint behavior propensities are not trustworthy",
@@ -66,6 +78,11 @@ def test_trustworthy_nonzero_joint_propensities_permit_wis() -> None:
             (behavior(),),
             support(fraction=0.0),
             "evaluation policy has no supported actions",
+        ),
+        (
+            (behavior(),),
+            support(fraction=0.5),
+            "evaluation policy lacks full action support",
         ),
     ],
 )

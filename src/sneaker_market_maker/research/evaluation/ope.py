@@ -59,12 +59,22 @@ def assess_ope_validity(
         return _not_valid("behavior policy metadata is missing")
     if any(policy.deterministic for policy in behavior):
         return _not_valid("deterministic behavior policy has no valid propensity")
+    if any(
+        policy.joint_log_propensity is None
+        and policy.missingness_reason is not None
+        and "zero"
+        in policy.missingness_reason.casefold().replace("/", " ").replace("-", " ").split()
+        for policy in behavior
+    ):
+        return _not_valid("joint behavior propensity is zero")
     if any(policy.joint_log_propensity is None for policy in behavior):
         return _not_valid("joint behavior propensity is missing")
     if not support.trustworthy_joint_propensities:
         return _not_valid("joint behavior propensities are not trustworthy")
     if support.supported_fraction == 0.0:
         return _not_valid("evaluation policy has no supported actions")
+    if support.supported_fraction != 1.0:
+        return _not_valid("evaluation policy lacks full action support")
     return OPEValidity(True, "VALID", None)
 
 
