@@ -54,3 +54,26 @@ Exact evidence:
   → `44 passed in 0.68s`.
 - Focused Ruff over the modified source and test files → `All checks passed!`.
 - `git diff --check` → passed.
+
+## Fix
+
+- Extracted shared transition and lineage helpers into `tests/persistence/fixtures.py` and
+  Postgres integration setup into `tests/integration/postgres_fixtures.py`.
+- Reduced `tests/integration/test_postgres_research_repository.py` from 306 to 136 lines while
+  keeping all integration coverage.
+- Updated unit tests to import the shared transition fixture.
+
+Exact evidence:
+
+- Line count:
+  `wc -l tests/integration/test_postgres_research_repository.py tests/persistence/fixtures.py tests/integration/postgres_fixtures.py`
+  → `136`, `148`, `59`.
+- Unit tests importing shared fixtures:
+  `python -m pytest tests/persistence/test_research_repository_unit.py -q`
+  → `7 passed in 0.50s`.
+- Integration tests via Docker:
+  `docker compose -f docker-compose.test.yml up -d --wait`
+  `DATABASE_URL=postgresql+psycopg://research:research@localhost:55432/research_test python -m pytest tests/integration/test_postgres_research_repository.py -m integration -q`
+  → `6 passed in 2.51s`.
+  `docker compose -f docker-compose.test.yml down -v` → containers removed.
+- Focused Ruff on extracted modules and integration test file → `All checks passed!`.
