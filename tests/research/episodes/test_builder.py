@@ -1,5 +1,6 @@
 import math
 from datetime import datetime, timedelta, timezone
+from typing import Literal
 from uuid import uuid4
 
 import pytest
@@ -16,7 +17,7 @@ def event(
     kind: EventKind,
     *,
     stable_order: int = 0,
-    provenance: str = "historical",
+    provenance: Literal["historical", "synthetic"] = "historical",
 ) -> NormalizedEvent:
     return NormalizedEvent(
         source_id=source_id,
@@ -24,7 +25,7 @@ def event(
         stable_order=stable_order,
         kind=kind,
         payload={},
-        provenance=provenance,  # type: ignore[arg-type]
+        provenance=provenance,
     )
 
 
@@ -55,6 +56,20 @@ def test_reduces_same_timestamp_events_in_stable_order() -> None:
         EventKind.REGIME,
     )
     assert episode.decisions[0].source_ids == ("book", "fill", "synthetic")
+
+
+def test_preserves_mixed_provenance_aligned_with_stable_source_order() -> None:
+    episode = EpisodeBuilder().build(
+        [
+            event(30, "synthetic", EventKind.REGIME, stable_order=2, provenance="synthetic"),
+            event(30, "historical", EventKind.BOOK, stable_order=1),
+        ],
+        config(),
+    )
+
+    point = episode.decisions[0]
+    assert point.source_ids == ("historical", "synthetic")
+    assert point.provenances == ("historical", "synthetic")
 
 
 def test_material_event_on_maintenance_boundary_is_one_decision() -> None:

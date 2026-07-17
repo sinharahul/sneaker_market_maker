@@ -7,6 +7,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from itertools import groupby
+from typing import Literal
 from uuid import UUID
 
 from sneaker_market_maker.research.episodes.events import EventKind, NormalizedEvent
@@ -37,6 +38,7 @@ class DecisionPoint:
     elapsed_seconds: int
     reasons: tuple[EventKind, ...]
     source_ids: tuple[str, ...]
+    provenances: tuple[Literal["historical", "synthetic"], ...]
     discount: float
 
 
@@ -118,6 +120,7 @@ class EpisodeBuilder:
                         else (EventKind.FRESHNESS,)
                     ),
                     source_ids=tuple(event.source_id for event in grouped_events),
+                    provenances=tuple(event.provenance for event in grouped_events),
                     discount=math.exp(-config.discount_rate * elapsed_seconds),
                 )
             )
