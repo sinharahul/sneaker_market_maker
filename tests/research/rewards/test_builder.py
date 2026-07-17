@@ -128,7 +128,7 @@ def test_explanatory_fees_are_not_subtracted_twice() -> None:
 
 def test_missing_cost_ledger_entry_gets_one_named_accrual() -> None:
     before = projection()
-    after = projection(nav=Decimal("995"), shipping=Decimal("5"))
+    after = projection(nav=Decimal("1000"), shipping=Decimal("5"))
     builder = RewardBuilder(
         config(),
         accrual_entry_ids={"shipping": "accrual:shipping:step-1"},
@@ -136,8 +136,22 @@ def test_missing_cost_ledger_entry_gets_one_named_accrual() -> None:
 
     reward = builder.build(before, after, penalties(), terminal=False)
 
+    assert reward.nav_delta == Decimal("0")
     assert reward.ledger_entry_ids == ("accrual:shipping:step-1",)
     assert reward.ledger_entry_ids.count("accrual:shipping:step-1") == 1
+
+
+def test_unrelated_new_ledger_entry_cannot_reconcile_cost() -> None:
+    with pytest.raises(ValueError, match="missing ledger entry.*shipping"):
+        RewardBuilder(config()).build(
+            projection(),
+            projection(
+                ledger_entry_ids=("unrelated:inventory-adjustment",),
+                shipping=Decimal("5"),
+            ),
+            penalties(),
+            terminal=False,
+        )
 
 
 def test_missing_cost_ledger_entry_without_accrual_is_rejected() -> None:
@@ -145,6 +159,16 @@ def test_missing_cost_ledger_entry_without_accrual_is_rejected() -> None:
         RewardBuilder(config()).build(
             projection(),
             projection(nav=Decimal("995"), shipping=Decimal("5")),
+            penalties(),
+            terminal=False,
+        )
+
+
+def test_prior_ledger_ids_cannot_be_dropped() -> None:
+    with pytest.raises(ValueError, match="append-only"):
+        RewardBuilder(config()).build(
+            projection(ledger_entry_ids=("existing-entry",)),
+            projection(),
             penalties(),
             terminal=False,
         )

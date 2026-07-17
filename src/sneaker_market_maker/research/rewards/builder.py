@@ -158,9 +158,9 @@ class RewardBuilder:
         }
         nav_delta = (after.nav - before.nav) / self.config.initial_nav
         penalty_total = sum(weighted_penalties.values(), start=_ZERO)
-        total = nav_delta - penalty_total
-        reconciled_total = nav_delta - sum(weighted_penalties.values(), start=_ZERO)
-        if abs(total - reconciled_total) > self.config.tolerance:
+        components = (nav_delta, *(-value for value in weighted_penalties.values()))
+        total = sum(components, start=_ZERO)
+        if abs(total - (nav_delta - penalty_total)) > self.config.tolerance:
             raise ValueError("reward components do not reconcile")
 
         return RewardRecord(
@@ -180,6 +180,9 @@ class RewardBuilder:
         explanatory_costs: Mapping[str, Decimal],
     ) -> tuple[str, ...]:
         before_ids = set(before.ledger_entry_ids)
+        after_ids = set(after.ledger_entry_ids)
+        if not before_ids <= after_ids:
+            raise ValueError("ledger entry lineage must be append-only")
         new_ids = [entry_id for entry_id in after.ledger_entry_ids if entry_id not in before_ids]
         unused_ids = list(new_ids)
         reconciled_ids = list(new_ids)
@@ -187,9 +190,10 @@ class RewardBuilder:
         for name, amount in explanatory_costs.items():
             if amount == _ZERO:
                 continue
-            matching_id = next((entry_id for entry_id in unused_ids if name in entry_id), None)
-            if matching_id is None and unused_ids:
-                matching_id = unused_ids[0]
+            matching_id = next(
+                (entry_id for entry_id in unused_ids if entry_id.startswith(f"{name}:")),
+                None,
+            )
             if matching_id is not None:
                 unused_ids.remove(matching_id)
                 continue
