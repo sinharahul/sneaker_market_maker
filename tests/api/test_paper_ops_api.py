@@ -61,6 +61,7 @@ def test_idempotent_load_start_enable_tick_produces_book_projections() -> None:
 
     status = client.get("/api/paper/status").json()
     assert status["run_id"] == run_id
+    assert status["strategy_mode"] == "deterministic"
     assert status["strategy_enabled"] is True
     assert status["fills"] >= 1
     assert status["lots"] >= 1

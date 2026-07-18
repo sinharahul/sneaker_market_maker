@@ -13,13 +13,19 @@ from uuid import UUID, uuid4
 from sneaker_market_maker.core import FeeSchedule
 from sneaker_market_maker.paper.book_snapshot import book_snapshot
 from sneaker_market_maker.paper.capital import PaperCapital
+from sneaker_market_maker.paper.decision_state import build_paper_decision_state
 from sneaker_market_maker.paper.execution import (
     PaperExecutionEngine,
     SlippageModel,
     VersionedFees,
 )
 from sneaker_market_maker.paper.gate import DeterministicGate
-from sneaker_market_maker.paper.inference import InferenceError
+from sneaker_market_maker.paper.inference import (
+    InferenceError,
+    InferenceOutcome,
+    IqlInferencePort,
+    TimedIqlInference,
+)
 from sneaker_market_maker.paper.intents import IntentKind, QuoteIntent, Side
 from sneaker_market_maker.paper.inventory import InventoryLedger, LotState
 from sneaker_market_maker.paper.ops_mode import PaperModeControls
@@ -34,6 +40,7 @@ from sneaker_market_maker.paper.projections import (
 )
 from sneaker_market_maker.paper.quote_engine import QuoteEngine, QuoteEngineConfig
 from sneaker_market_maker.paper.replay import load_golden_historical_replay
+from sneaker_market_maker.paper.replay.loader import MarketReplayEvent
 from sneaker_market_maker.paper.replay.simulator import HistoricalReplaySimulator
 from sneaker_market_maker.paper.strategy_mode import QualificationError, StrategyMode
 from sneaker_market_maker.persistence.paper_repository import InMemoryPaperStore
@@ -95,11 +102,18 @@ class PaperOpsSession:
         self._idempotency: dict[str, tuple[str, UUID]] = {}
         self._events: list[PaperEventEnvelope] = []
         self._mode = PaperModeControls()
+        self._inference: IqlInferencePort | None = None
+        self._last_inference: InferenceOutcome | None = None
 
     def bind_active_model(self, *, model_id: str, registry_state: RegistryState) -> None:
         """Bind the research registry model used for Model Qualification."""
 
         self._mode.bind_active_model(model_id=model_id, registry_state=registry_state)
+
+    def bind_inference(self, port: IqlInferencePort) -> None:
+        """Inject the IQL inference port (stub or production)."""
+
+        self._inference = port
 
     def execute(self, command: str, payload: dict[str, Any], idempotency_key: str) -> UUID:
         normalized = json.dumps(payload, sort_keys=True, separators=(",", ":"))
@@ -260,6 +274,7 @@ class PaperOpsSession:
                         if lot.source_fill_id == fill.fill_id and lot.state is LotState.PURCHASED:
                             self._ledger.advance_to_available(lot.lot_id)
             self._quotes.sync_capital(self._execution.capital)
+            self._last_inference = self._inference_for_event(event)
             for intent, decision in self._quotes.on_market(
                 event, simulation_time=event.source_timestamp
             ):
@@ -271,6 +286,26 @@ class PaperOpsSession:
             {"events": len(batch), "event_ids": [event.event_id for event in batch]},
         )
         return self._events[-1].event_id
+
+    def _inference_for_event(self, event: MarketReplayEvent) -> InferenceOutcome | None:
+        """Run IQL only when Strategy Mode is not deterministic."""
+
+        if self._mode.machine.mode is StrategyMode.DETERMINISTIC:
+            return None
+        if self._inference is None:
+            return InferenceOutcome(
+                valid=False,
+                action=None,
+                latency_ms=0.0,
+                reason="no_inference_port",
+            )
+        state = build_paper_decision_state(
+            event=event,
+            capital=self._execution.capital,
+            orders=tuple(self._execution.orders.values()),
+            lots=self._ledger.lots(),
+        )
+        return TimedIqlInference(self._inference, self._mode.budget).infer(state)
 
     def _cmd_set_mode(self, payload: dict[str, Any]) -> UUID:
         mode = StrategyMode(str(payload["mode"]))
