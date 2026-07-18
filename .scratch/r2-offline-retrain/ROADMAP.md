@@ -56,17 +56,17 @@ Retrain / fine-tune distributional IQL on paper-derived + historical transitions
 
 **Exit criteria**
 
-- [x] Train job consumes R1 artifacts + pinned historical mix  
-- [x] EvaluationHarness report + registry `register` of new artifact  
-- [x] Walk-forward / leakage controls unchanged (train-fold scaler, etc.)  
+- [ ] Train job consumes R1 artifacts + pinned historical mix  
+- [ ] EvaluationHarness report + registry `register` of new artifact  
+- [ ] Walk-forward / leakage controls unchanged (train-fold scaler, etc.)  
 
-**Candidate work items** (filed — see `.scratch/r2-offline-retrain/issues/`)
+**Candidate work items**
 
-1. `01` Mixed dataset manifest ✅  
-2. `02` Offline IQL train job ✅  
-3. `03` Walk-forward harness benchmark ✅  
-4. `04` OPE validity gate (parallel with 05 after 03) ✅  
-5. `05` Registry register artifact (parallel with 04 after 03) ✅ 
+1. Dataset manifest joining paper + historical transitions  
+2. Train entrypoint with frozen assumption hash  
+3. Benchmark vs deterministic / prior IQL under harness  
+4. OPE validity gate (no fabricated WIS when support fails)  
+5. Checkpoint/safetensors register into RegistryService  
 
 ### R3 — Bind production artifacts in Ops (no stubs on happy path)
 
