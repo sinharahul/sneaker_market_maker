@@ -12,7 +12,8 @@ send still off**. See [`ROADMAP.md`](ROADMAP.md).
 **Glossary (canonical terms):** [`CONTEXT.md`](../CONTEXT.md)  
 **Paper Ops (tick → fill):** [`docs/paper-ops/`](paper-ops/README.md)  
 **Research math / layers:** [`docs/research/junior-walkthrough.md`](research/junior-walkthrough.md),
-[`QUANTITATIVE_CONTEXT.md`](research/QUANTITATIVE_CONTEXT.md)
+[`QUANTITATIVE_CONTEXT.md`](research/QUANTITATIVE_CONTEXT.md),
+[`iql-code-walkthrough.md`](research/iql-code-walkthrough.md)
 
 ---
 
@@ -210,6 +211,8 @@ Missing / timeout / invalid inference while mode=iql_primary
 
 Deeper math: [`QUANTITATIVE_CONTEXT.md`](research/QUANTITATIVE_CONTEXT.md),
 [`junior-walkthrough.md`](research/junior-walkthrough.md) (IQL layer).
+**Code + Ops bind + PyTorch actor tutorial:**
+[`iql-code-walkthrough.md`](research/iql-code-walkthrough.md).
 
 ---
 
@@ -242,6 +245,7 @@ Gate remains final in every mode.
 | **Senior architect blueprint** | [`research/senior-architect-walkthrough.md`](research/senior-architect-walkthrough.md) |
 | **Exercise research pipeline** | [`research/exercise-pipeline.md`](research/exercise-pipeline.md) |
 | Deep quantitative context | [`research/QUANTITATIVE_CONTEXT.md`](research/QUANTITATIVE_CONTEXT.md) |
+| **IQL code + paper bind + actor/PyTorch** | [`research/iql-code-walkthrough.md`](research/iql-code-walkthrough.md) |
 | Why golden replay / deterministic-first / Gate-final IQL | ADRs [`0001`](adr/0001-golden-historical-replay-for-v1.md), [`0002`](adr/0002-deterministic-first-paper-mm.md), [`0003`](adr/0003-iql-strategy-modes-gate-final.md) |
 | PFHedge paper mode deferred | ADR [`0005`](adr/0005-pfhedge-paper-mode-deferred.md) |
 | **Roadmap (research loop + live readiness)** | [`ROADMAP.md`](ROADMAP.md) · [dual-track spec](superpowers/specs/2026-07-18-dual-track-roadmap.md) |

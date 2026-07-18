@@ -6,7 +6,9 @@
 
 **Progress:** Research↔paper loop closed (R0–R4). L1 read-only observe shipped. Live-send still gated — see [`../ROADMAP.md`](../ROADMAP.md).
 
-**Companions:** [`QUANTITATIVE_CONTEXT.md`](./QUANTITATIVE_CONTEXT.md) (full math) · [`../MASTER.md`](../MASTER.md) (product map) · [`exercise-pipeline.md`](./exercise-pipeline.md) (run tests)
+**Companions:** [`QUANTITATIVE_CONTEXT.md`](./QUANTITATIVE_CONTEXT.md) (full math) ·
+[`iql-code-walkthrough.md`](./iql-code-walkthrough.md) (IQL code + Ops bind + actor) ·
+[`../MASTER.md`](../MASTER.md) (product map) · [`exercise-pipeline.md`](./exercise-pipeline.md) (run tests)
 
 ---
 

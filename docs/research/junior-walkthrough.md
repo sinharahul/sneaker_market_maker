@@ -22,7 +22,9 @@ an auto-approved trading agent. Live order send is roadmap-gated, not “never.�
 
 For the **Continuous Paper Market-Maker** Ops path (golden replay → Strategy Mode →
 Gate → fills), use [`docs/paper-ops/`](../paper-ops/README.md). For observe-only
-live readiness, see [`docs/observe/`](../observe/README.md).
+live readiness, see [`docs/observe/`](../observe/README.md). For a
+file-level IQL + `HybridActor` + paper-bind walkthrough (PyTorch), see
+[`iql-code-walkthrough.md`](./iql-code-walkthrough.md).
 
 ---
 

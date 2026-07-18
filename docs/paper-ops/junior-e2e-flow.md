@@ -11,7 +11,9 @@ acceptance can use the **CI-pinned IQL** artifact for `advisory` / `iql_primary`
 **Glossary:** [`CONTEXT.md`](../../CONTEXT.md).  
 **Siblings:** [operator cheat sheet](./operator-cheat-sheet.md),
 [auditor reconstructibility](./auditor-reconstructibility.md),
-[bind/qualify runbook](./bind-qualify-runbook.md).
+[bind/qualify runbook](./bind-qualify-runbook.md).  
+**IQL code + actor (how bind works under the hood):**
+[`../research/iql-code-walkthrough.md`](../research/iql-code-walkthrough.md).
 
 This is **not** the Guided Demo (fixture story at `/?`) and **not** the research
 comparison page (`/?view=research`).
