@@ -1,0 +1,12 @@
+{
+  "dataset_id": "fixture-smoke-v1",
+  "version": "0.1.0",
+  "checksum_sha256": "51bff687da98afbad8cc66329f0f9ab73869fabb8ddccf6dba2e796e29063067",
+  "source_kind": "fixture",
+  "schema_version": "market-event-v1",
+  "allowlist_version": "product-families-v1",
+  "product_families": [
+    "jordan_1_retro",
+    "nike_dunk_low"
+  ]
+}
