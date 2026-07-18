@@ -16,9 +16,11 @@ live orders.
 | Analytics core | `FeeSchedule`, `OpportunityEvaluator`, GBM stress paths |
 | Research | Episodes → rewards → transitions → IQL / PFHedge → evaluation / OPE |
 | Governance | Registry, qualification, shadow/advisory recommender |
-| Local UI | Guided 5-minute demo + research comparison page |
+| Local UI | Guided 5-minute demo + research comparison page + Ops Dashboard |
 
-Python **3.10–3.12**. Docs: [junior walkthrough](docs/research/junior-walkthrough.md),
+Python **3.10–3.12**. Docs: **[master overview](docs/MASTER.md)** (start here),
+[Paper Ops](docs/paper-ops/README.md),
+[research junior walkthrough](docs/research/junior-walkthrough.md),
 [quantitative context](docs/research/QUANTITATIVE_CONTEXT.md),
 [acceptance checklist](docs/research/acceptance-checklist.md).
 
