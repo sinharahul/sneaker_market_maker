@@ -43,3 +43,28 @@ class PaperCapital:
             cash=self.cash,
             reserved_buy_principal=_money(reserved_buy_principal),
         )
+
+    def apply_buy_fill(
+        self,
+        *,
+        principal_released: Decimal,
+        total_cost: Decimal,
+    ) -> PaperCapital:
+        if principal_released > self.reserved_buy_principal:
+            raise ValueError("cannot release more than reserved buy principal")
+        if total_cost > self.cash:
+            raise ValueError("insufficient cash for buy fill")
+        return PaperCapital(
+            initial=self.initial,
+            cash=_money(self.cash - total_cost),
+            reserved_buy_principal=_money(self.reserved_buy_principal - principal_released),
+        )
+
+    def apply_sell_fill(self, *, proceeds: Decimal) -> PaperCapital:
+        if proceeds < 0:
+            raise ValueError("sell proceeds cannot be negative")
+        return PaperCapital(
+            initial=self.initial,
+            cash=_money(self.cash + proceeds),
+            reserved_buy_principal=self.reserved_buy_principal,
+        )
