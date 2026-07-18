@@ -62,7 +62,7 @@ class StubInventory:
 
 
 class QuoteEngine:
-    """Compare desired vs active quotes and emit Explicit Quote Intents through the gate."""
+    """Emit place/revise/cancel/replace Quote Intents through the Deterministic Gate."""
 
     def __init__(
         self,
