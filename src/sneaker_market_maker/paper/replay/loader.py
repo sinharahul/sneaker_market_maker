@@ -110,7 +110,8 @@ def _parse_manifest(raw: dict[str, Any]) -> ReplayManifest:
             raise ReplayLoadError(
                 "invalid_source_kind",
                 "source_kind must be historical or fixture",
-            )        families = raw["product_families"]
+            )
+        families = raw["product_families"]
         if not isinstance(families, list) or not all(isinstance(item, str) for item in families):
             raise ReplayLoadError("invalid_manifest", "product_families must be a string list")
         return ReplayManifest(
