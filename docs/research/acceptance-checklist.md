@@ -6,7 +6,8 @@ Recorded **2026-07-17** on branch `feature/deep-bellman-pfhedge`.
 
 | Item | Value |
 | --- | --- |
-| Git revision | `cbfe839643432c1a88c1cc6805cb36c668ae3e83` |
+| Git revision (evidence base) | `cbfe839643432c1a88c1cc6805cb36c668ae3e83` |
+| Acceptance commit | `472af58a4730c3d18ad37bbd37fc871715b25637` |
 | Python | CPython 3.12.4 |
 | Node | v18.16.0 (npm 9.5.1) |
 | PostgreSQL (test container) | PostgreSQL 16.14 (Debian, aarch64) |
@@ -44,7 +45,7 @@ Recorded **2026-07-17** on branch `feature/deep-bellman-pfhedge`.
 
   command: `.venv/bin/python -m pytest tests/research/evaluation/test_ope.py tests/research/iql/test_trainer.py -q --import-mode=importlib`
   artifact: `tests/research/evaluation/test_ope.py`, `tests/research/iql/test_trainer.py`
-  result: OPE module rejects invalid claims; trainer tests enforce logged-action-only fitting and unsupported-region reporting (included in 52 IQL tests above).
+  result: `17 passed` — OPE module rejects invalid claims; trainer tests enforce logged-action-only fitting and unsupported-region reporting.
 
 - [x] AC-06 — PFHedge 0.23.0 passes pinned public-API compatibility test and remains a direct baseline with no IQL/Bellman responsibility.
 
@@ -56,13 +57,13 @@ Recorded **2026-07-17** on branch `feature/deep-bellman-pfhedge`.
 
   command: `.venv/bin/python -m pytest tests/research/evaluation/test_harness.py -q --import-mode=importlib`
   artifact: `tests/research/evaluation/test_harness.py`, `src/sneaker_market_maker/research/evaluation/harness.py`
-  result: Harness tests pass as part of `38 passed in 2.00s` for full evaluation suite.
+  result: `10 passed` — harness covers deterministic/no-model/heuristic/v1 MLP/PFHedge/IQL under frozen assumptions.
 
 - [x] AC-08 — Walk-forward tests prove no temporal, episode, product/size, transform, or synthetic-to-historical leakage; confidence intervals, ablations, stresses, and required risk/inventory/capital metrics present.
 
   command: `.venv/bin/python -m pytest tests/research/evaluation/test_splits.py tests/research/evaluation/test_harness.py -q --import-mode=importlib`
   artifact: `tests/research/evaluation/test_splits.py`, `tests/research/evaluation/test_harness.py`
-  result: `38 passed in 2.00s` for full evaluation suite — leakage controls, splits, metrics, and stress reporting.
+  result: `28 passed` — walk-forward leakage controls, splits, metrics, and stress reporting via splits+harness.
 
 - [x] AC-09 — Registry and serving tests prove offline-only training, immutable lineage, shadow first, benchmark-policy enforcement, safe rollback/fallback, bounded advisory output, and deterministic final authority.
 
@@ -74,7 +75,7 @@ Recorded **2026-07-17** on branch `feature/deep-bellman-pfhedge`.
 
   command: `.venv/bin/python -m pytest tests/research/serving/test_recommender.py::test_shadow_persists_comparisons_without_changing_full_paper_command_stream -q --import-mode=importlib`
   artifact: `tests/research/serving/test_recommender.py`
-  result: Shadow stream hash match test passes (included in 52 serving/registry tests above).
+  result: `1 passed` — shadow paper command stream byte-equivalent to deterministic-only while comparisons persist.
 
 - [x] AC-11 — Guided demo completes the specified deterministic five-minute story, supports pause/step/resume/restart, and shows actions, gate, inventory, fees, and P&L without network access.
 
@@ -98,4 +99,4 @@ Recorded **2026-07-17** on branch `feature/deep-bellman-pfhedge`.
 
   command: `.venv/bin/python -m ruff check src tests; .venv/bin/python -m pytest -m "not integration" -q --import-mode=importlib; docker compose -f docker-compose.test.yml up -d --wait && DATABASE_URL=postgresql+psycopg://research:research@localhost:55432/research_test alembic upgrade head && DATABASE_URL=postgresql+psycopg://research:research@localhost:55432/research_test .venv/bin/python -m pytest -m integration -q --import-mode=importlib; docker compose -f docker-compose.test.yml down -v; cd frontend && npm ci && npm test && npm run typecheck && npm run build; .venv/bin/python -m pytest tests/research/qualification/test_service.py -q --import-mode=importlib`
   artifact: `.superpowers/sdd/task-26-report.md`
-  result: Unit `497 passed, 7 deselected`; integration `7 passed, 498 deselected`; qualification `29 passed`; frontend `8 passed`, typecheck clean, Vite build succeeded. Ruff reports 4 pre-existing findings (1× UP038 in `pipeline.py`, 3× SIM102 in `tests/safety/audit_helpers.py`) — not introduced by Task 26.
+  result: Unit `498 passed, 7 deselected`; integration `7 passed, 498 deselected`; qualification `29 passed`; frontend `8 passed`, typecheck clean, Vite build succeeded. Ruff reports 4 pre-existing findings (1× UP038 in `pipeline.py`, 3× SIM102 in `tests/safety/audit_helpers.py`) — not introduced by Task 26.
