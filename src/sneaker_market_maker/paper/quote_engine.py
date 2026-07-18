@@ -10,6 +10,7 @@ from uuid import uuid4
 from sneaker_market_maker.paper.capital import PaperCapital, _money
 from sneaker_market_maker.paper.gate import DeterministicGate, GateDecision
 from sneaker_market_maker.paper.intents import IntentKind, QuoteIntent, Side
+from sneaker_market_maker.paper.inventory_stub import StubInventory
 from sneaker_market_maker.paper.replay.loader import MarketReplayEvent
 
 
@@ -32,33 +33,6 @@ class ActiveQuote:
     style_code: str
     shoe_size: Decimal
     placed_at: datetime
-
-
-@dataclass
-class StubInventory:
-    """Inventory stub until Inventory Lots (ticket 06) exist."""
-
-    _available: dict[tuple[str, str, str], int]
-
-    def __init__(self) -> None:
-        self._available = {}
-
-    def set_available(
-        self,
-        product_family: str,
-        style_code: str,
-        shoe_size: Decimal,
-        count: int,
-    ) -> None:
-        self._available[(product_family, style_code, str(shoe_size))] = count
-
-    def available_lot_count(
-        self,
-        product_family: str,
-        style_code: str,
-        shoe_size: Decimal,
-    ) -> int:
-        return self._available.get((product_family, style_code, str(shoe_size)), 0)
 
 
 class QuoteEngine:

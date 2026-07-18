@@ -11,11 +11,8 @@ from sneaker_market_maker.paper.allowlist import ProductFamily
 from sneaker_market_maker.paper.capital import PaperCapital
 from sneaker_market_maker.paper.gate import DeterministicGate, GateReason
 from sneaker_market_maker.paper.intents import IntentKind, Side
-from sneaker_market_maker.paper.quote_engine import (
-    QuoteEngine,
-    QuoteEngineConfig,
-    StubInventory,
-)
+from sneaker_market_maker.paper.inventory_stub import StubInventory
+from sneaker_market_maker.paper.quote_engine import QuoteEngine, QuoteEngineConfig
 from sneaker_market_maker.paper.replay.loader import MarketReplayEvent
 
 T0 = datetime(2026, 1, 1, 12, 0, tzinfo=timezone.utc)
