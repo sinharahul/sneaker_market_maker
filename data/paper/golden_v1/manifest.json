@@ -1,7 +1,7 @@
 {
   "dataset_id": "golden-stockx-v1",
   "version": "1.0.0",
-  "checksum_sha256": "7098125e895fe4e099e679842210f96423111c518c98f909a00dc02c5c03d348",
+  "checksum_sha256": "564eb00f13b1cf3cad98b0cf64a5eea4600671b04d9d19e5d0e11e0500197d38",
   "source_kind": "historical",
   "schema_version": "market-event-v1",
   "allowlist_version": "product-families-v1",

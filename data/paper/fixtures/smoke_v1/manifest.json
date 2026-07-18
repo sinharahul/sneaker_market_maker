@@ -1,7 +1,7 @@
 {
   "dataset_id": "fixture-smoke-v1",
   "version": "0.1.0",
-  "checksum_sha256": "51bff687da98afbad8cc66329f0f9ab73869fabb8ddccf6dba2e796e29063067",
+  "checksum_sha256": "b4201f5c58863a700a35c0de65808e9bf61e229041e42b620644c116d5f44f4b",
   "source_kind": "fixture",
   "schema_version": "market-event-v1",
   "allowlist_version": "product-families-v1",

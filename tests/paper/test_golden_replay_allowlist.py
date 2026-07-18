@@ -20,6 +20,8 @@ from sneaker_market_maker.paper.replay.loader import (
     load_stockx_shaped_fixture,
 )
 
+TS = "2026-01-01T00:00:00+00:00"
+
 
 def test_allowlist_accepts_jordan_and_dunk_only() -> None:
     assert assert_family_allowed("jordan_1_retro") is ProductFamily.JORDAN_1_RETRO
@@ -39,6 +41,18 @@ def _write_events(path: Path, events: list[dict[str, object]]) -> str:
     return hashlib.sha256(body.encode("utf-8")).hexdigest()
 
 
+def _manifest(checksum: str, *, source_kind: str = "historical") -> dict[str, object]:
+    return {
+        "dataset_id": "golden-test",
+        "version": "1.0.0",
+        "checksum_sha256": checksum,
+        "source_kind": source_kind,
+        "schema_version": "market-event-v1",
+        "allowlist_version": ALLOWLIST_VERSION,
+        "product_families": ["jordan_1_retro", "nike_dunk_low"],
+    }
+
+
 def test_golden_replay_loads_when_checksum_and_families_match(tmp_path: Path) -> None:
     events = [
         {
@@ -48,6 +62,7 @@ def test_golden_replay_loads_when_checksum_and_families_match(tmp_path: Path) ->
             "shoe_size": "10",
             "highest_bid": "200",
             "lowest_ask": "250",
+            "source_timestamp": TS,
         },
         {
             "event_id": "e2",
@@ -56,24 +71,11 @@ def test_golden_replay_loads_when_checksum_and_families_match(tmp_path: Path) ->
             "shoe_size": "9",
             "highest_bid": "100",
             "lowest_ask": "140",
+            "source_timestamp": "2026-01-01T00:00:01+00:00",
         },
     ]
-    events_path = tmp_path / "events.jsonl"
-    checksum = _write_events(events_path, events)
-    (tmp_path / "manifest.json").write_text(
-        json.dumps(
-            {
-                "dataset_id": "golden-test",
-                "version": "1.0.0",
-                "checksum_sha256": checksum,
-                "source_kind": "historical",
-                "schema_version": "market-event-v1",
-                "allowlist_version": ALLOWLIST_VERSION,
-                "product_families": ["jordan_1_retro", "nike_dunk_low"],
-            }
-        ),
-        encoding="utf-8",
-    )
+    checksum = _write_events(tmp_path / "events.jsonl", events)
+    (tmp_path / "manifest.json").write_text(json.dumps(_manifest(checksum)), encoding="utf-8")
 
     replay = load_golden_historical_replay(tmp_path)
     assert replay.manifest.source_kind == "historical"
@@ -82,9 +84,8 @@ def test_golden_replay_loads_when_checksum_and_families_match(tmp_path: Path) ->
 
 
 def test_golden_replay_rejects_checksum_mismatch(tmp_path: Path) -> None:
-    events_path = tmp_path / "events.jsonl"
     _write_events(
-        events_path,
+        tmp_path / "events.jsonl",
         [
             {
                 "event_id": "e1",
@@ -93,21 +94,12 @@ def test_golden_replay_rejects_checksum_mismatch(tmp_path: Path) -> None:
                 "shoe_size": "10",
                 "highest_bid": "200",
                 "lowest_ask": "250",
+                "source_timestamp": TS,
             }
         ],
     )
     (tmp_path / "manifest.json").write_text(
-        json.dumps(
-            {
-                "dataset_id": "golden-test",
-                "version": "1.0.0",
-                "checksum_sha256": "0" * 64,
-                "source_kind": "historical",
-                "schema_version": "market-event-v1",
-                "allowlist_version": ALLOWLIST_VERSION,
-                "product_families": ["jordan_1_retro", "nike_dunk_low"],
-            }
-        ),
+        json.dumps(_manifest("0" * 64)),
         encoding="utf-8",
     )
     with pytest.raises(ReplayLoadError) as exc:
@@ -124,33 +116,19 @@ def test_golden_replay_rejects_non_allowlisted_family_in_events(tmp_path: Path) 
             "shoe_size": "10",
             "highest_bid": "200",
             "lowest_ask": "250",
+            "source_timestamp": TS,
         }
     ]
-    events_path = tmp_path / "events.jsonl"
-    checksum = _write_events(events_path, events)
-    (tmp_path / "manifest.json").write_text(
-        json.dumps(
-            {
-                "dataset_id": "golden-test",
-                "version": "1.0.0",
-                "checksum_sha256": checksum,
-                "source_kind": "historical",
-                "schema_version": "market-event-v1",
-                "allowlist_version": ALLOWLIST_VERSION,
-                "product_families": ["jordan_1_retro", "nike_dunk_low"],
-            }
-        ),
-        encoding="utf-8",
-    )
+    checksum = _write_events(tmp_path / "events.jsonl", events)
+    (tmp_path / "manifest.json").write_text(json.dumps(_manifest(checksum)), encoding="utf-8")
     with pytest.raises(ReplayLoadError) as exc:
         load_golden_historical_replay(tmp_path)
     assert exc.value.code == "unsupported_product_family"
 
 
 def test_golden_replay_rejects_non_historical_source_kind(tmp_path: Path) -> None:
-    events_path = tmp_path / "events.jsonl"
     checksum = _write_events(
-        events_path,
+        tmp_path / "events.jsonl",
         [
             {
                 "event_id": "e1",
@@ -159,21 +137,12 @@ def test_golden_replay_rejects_non_historical_source_kind(tmp_path: Path) -> Non
                 "shoe_size": "10",
                 "highest_bid": "200",
                 "lowest_ask": "250",
+                "source_timestamp": TS,
             }
         ],
     )
     (tmp_path / "manifest.json").write_text(
-        json.dumps(
-            {
-                "dataset_id": "not-golden",
-                "version": "1.0.0",
-                "checksum_sha256": checksum,
-                "source_kind": "fixture",
-                "schema_version": "market-event-v1",
-                "allowlist_version": ALLOWLIST_VERSION,
-                "product_families": ["jordan_1_retro", "nike_dunk_low"],
-            }
-        ),
+        json.dumps(_manifest(checksum, source_kind="fixture")),
         encoding="utf-8",
     )
     with pytest.raises(ReplayLoadError) as exc:
@@ -190,20 +159,16 @@ def test_stockx_shaped_fixture_loads_without_being_golden(tmp_path: Path) -> Non
             "shoe_size": "10",
             "highest_bid": "200",
             "lowest_ask": "250",
+            "source_timestamp": TS,
         }
     ]
-    events_path = tmp_path / "events.jsonl"
-    checksum = _write_events(events_path, events)
+    checksum = _write_events(tmp_path / "events.jsonl", events)
     (tmp_path / "manifest.json").write_text(
         json.dumps(
             {
+                **_manifest(checksum, source_kind="fixture"),
                 "dataset_id": "local-fixture",
                 "version": "0.0.1",
-                "checksum_sha256": checksum,
-                "source_kind": "fixture",
-                "schema_version": "market-event-v1",
-                "allowlist_version": ALLOWLIST_VERSION,
-                "product_families": ["jordan_1_retro", "nike_dunk_low"],
             }
         ),
         encoding="utf-8",

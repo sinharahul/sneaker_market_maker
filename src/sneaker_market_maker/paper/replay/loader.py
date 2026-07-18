@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 from dataclasses import dataclass
+from datetime import datetime
 from decimal import Decimal
 from pathlib import Path
 from typing import Any
@@ -28,6 +29,7 @@ class MarketReplayEvent:
     shoe_size: Decimal
     highest_bid: Decimal
     lowest_ask: Decimal
+    source_timestamp: datetime
 
 
 @dataclass(frozen=True)
@@ -87,7 +89,12 @@ def _load(directory: Path, *, required_source_kind: SourceKind) -> LoadedReplay:
             "events.jsonl sha256 does not match manifest checksum_sha256",
         )
 
-    events = tuple(_parse_event(line) for line in body.decode("utf-8").splitlines() if line.strip())
+    events = tuple(
+        sorted(
+            (_parse_event(line) for line in body.decode("utf-8").splitlines() if line.strip()),
+            key=lambda event: (event.source_timestamp, event.event_id),
+        )
+    )
     if not events:
         raise ReplayLoadError("empty_replay", "events.jsonl must contain at least one event")
     return LoadedReplay(manifest=manifest, events=events)
@@ -142,6 +149,12 @@ def _parse_event(line: str) -> MarketReplayEvent:
     except PaperError as error:
         raise ReplayLoadError(error.code, str(error)) from error
     try:
+        timestamp = datetime.fromisoformat(str(raw["source_timestamp"]))
+        if timestamp.tzinfo is None:
+            raise ReplayLoadError(
+                "invalid_event",
+                "source_timestamp must be timezone-aware ISO-8601",
+            )
         return MarketReplayEvent(
             event_id=str(raw["event_id"]),
             product_family=family,
@@ -149,11 +162,14 @@ def _parse_event(line: str) -> MarketReplayEvent:
             shoe_size=Decimal(str(raw["shoe_size"])),
             highest_bid=Decimal(str(raw["highest_bid"])),
             lowest_ask=Decimal(str(raw["lowest_ask"])),
+            source_timestamp=timestamp,
         )
-    except (KeyError, ArithmeticError) as error:
+    except ReplayLoadError:
+        raise
+    except (KeyError, ArithmeticError, ValueError, TypeError) as error:
         raise ReplayLoadError(
             "invalid_event",
-            "event is missing required numeric fields",
+            "event is missing required fields or has invalid timestamp/numerics",
         ) from error
 
 
