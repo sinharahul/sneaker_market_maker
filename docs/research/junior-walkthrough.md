@@ -17,6 +17,10 @@ actions — but **deterministic risk gates always decide** what the paper trader
 **What this product is not:** a live StockX/GOAT bot, a Cloudflare bypass, or an
 auto-approved trading agent.
 
+For the **Continuous Paper Market-Maker** Ops path (golden replay → Strategy Mode →
+Gate → fills), use [`docs/paper-ops/`](../paper-ops/README.md) — separate from this
+research walkthrough and from the Guided Demo.
+
 ---
 
 ## Big picture in one paragraph
@@ -556,6 +560,7 @@ injected auth dependency.
 |-------|----------------|
 | `http://127.0.0.1:5173/` | **Guided demo** (fixture-only, no fetch) |
 | `http://127.0.0.1:5173/?view=research` | Research comparison page (needs API) |
+| `http://127.0.0.1:5173/?view=ops` | **Ops Dashboard** — Continuous Paper Market-Maker (see [`docs/paper-ops/`](../paper-ops/README.md)) |
 
 | File | Job |
 |------|-----|

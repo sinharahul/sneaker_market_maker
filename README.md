@@ -117,6 +117,8 @@ Vite proxies `/api/*` → `http://127.0.0.1:8000`.
 | Research comparison | **http://127.0.0.1:5173/?view=research** | Python `GET /api/research/comparisons` |
 | Ops Dashboard | **http://127.0.0.1:5173/?view=ops** | Python `/api/paper` commands + projections |
 
+**Paper Ops end-to-end docs** (junior / operator / auditor): [`docs/paper-ops/`](docs/paper-ops/README.md).
+
 If the API is down, the research page fails closed to **deterministic-only** (no
 optimistic promotion).
 
