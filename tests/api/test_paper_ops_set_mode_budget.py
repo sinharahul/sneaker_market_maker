@@ -47,7 +47,9 @@ def test_status_defaults_to_deterministic_and_default_budget() -> None:
         "encoder_version": None,
         "state_schema_version": None,
         "action_translator_version": None,
+        "unlocked_modes": ["deterministic"],
     }
+    assert status["last_promote"] is None
 
 
 def test_set_budget_is_idempotent_and_rejects_above_ceiling() -> None:

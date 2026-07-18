@@ -92,15 +92,15 @@ Richer registry promotion UX; optional PFHedge as a later paper Strategy Mode (A
 
 **Exit criteria**
 
-- [ ] Operator can see promote/qualify path without only using research comparison  
-- [ ] PFHedge paper mode either explicitly deferred with reason or shipped behind ADR + Gate-final  
+- [x] Operator can see promote/qualify path without only using research comparison  
+- [x] PFHedge paper mode either explicitly deferred with reason or shipped behind ADR + Gate-final  
 
-**Candidate work items**
+**Candidate work items** (filed — see `.scratch/r4-promotion-ux/issues/`)
 
-1. Thin promotion/qualification controls on Ops or dedicated surface  
-2. Audit promote decisions  
-3. PFHedge paper mode spike doc / ADR decision  
-4. Regression: Gate still final; qty-one unchanged  
+1. `01` Ops promote / qualify command ✅  
+2. `02` Promote path on Ops projections ✅  
+3. `03` PFHedge paper mode decision (parallel with 01) ✅ — deferred: [`adr/0005`](adr/0005-pfhedge-paper-mode-deferred.md)  
+4. `04` Gate / qty-one regression after promote ✅  
 
 ---
 
@@ -112,9 +112,16 @@ StockX-shaped **read-only** market observations; Product-Family Allowlist preser
 
 **Exit criteria**
 
-- [ ] Port delivers allowlisted snapshots/events without credentials that can place orders  
-- [ ] Fail-closed on corrupt payloads (same spirit as `SneakerDataPipeline`)  
-- [ ] Safety tests: no send client in tree for this port  
+- [x] Port delivers allowlisted snapshots/events without credentials that can place orders  
+- [x] Fail-closed on corrupt payloads (same spirit as `SneakerDataPipeline`)  
+- [x] Safety tests: no send client in tree for this port  
+
+**Candidate work items** (filed — see `.scratch/l1-readonly-market/issues/`)
+
+1. `01` Read-only observation port + allowlist ✅  
+2. `02` Fail-closed corrupt payload ingest ✅  
+3. `03` Safety: no send client in port tree (parallel with 02 after 01) ✅  
+4. `04` L1 acceptance fixture + observe docs ✅  
 
 ### L2 — Shadow live (“would quote”)
 

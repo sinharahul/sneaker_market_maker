@@ -20,6 +20,26 @@ This runbook covers **pin → qualify (registry state) → bind → set mode**. 
   - `iql_primary` → `benchmark_qualified` or `advisory_approved`
   - `deterministic` → always available (no qualification)
 
+## Qualify (promote)
+
+With a `RegistryService` attached to the session (`attach_registry`):
+
+```http
+POST /api/paper/commands/promote-model
+Idempotency-Key: promote-<unique>
+```
+
+```json
+{
+  "model_id": "<uuid>",
+  "target": "validated",
+  "actor": "operator",
+  "reason": "fold metrics ok"
+}
+```
+
+Legal edges only (`candidate` → `validated` → `shadow` → `benchmark_qualified` → `advisory_approved`, plus reject/rollback). Success emits `strategy.model_promoted` and updates `status.registry` / `last_promote` / `unlocked_modes`.
+
 ## Bind (happy path)
 
 ### Local demo

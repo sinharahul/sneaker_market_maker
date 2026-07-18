@@ -54,6 +54,11 @@ from sneaker_market_maker.paper.projections import (
     replay_projection,
     status_projection,
 )
+from sneaker_market_maker.paper.promote import (
+    PromoteError,
+    promote_registry_model,
+    unlocked_modes_for,
+)
 from sneaker_market_maker.paper.quote_engine import QuoteEngine, QuoteEngineConfig
 from sneaker_market_maker.paper.replay import load_golden_historical_replay
 from sneaker_market_maker.paper.replay.loader import MarketReplayEvent
@@ -67,7 +72,7 @@ from sneaker_market_maker.persistence.paper_models import PaperBookSnapshot
 from sneaker_market_maker.persistence.paper_repository import InMemoryPaperStore
 from sneaker_market_maker.persistence.research_repository import InMemoryResearchRepository
 from sneaker_market_maker.research.contracts.action import ActionCategory, HybridAction
-from sneaker_market_maker.research.registry.service import RegistryState
+from sneaker_market_maker.research.registry.service import RegistryService, RegistryState
 
 PAUSE_OPERATOR = "operator"
 PAUSE_IQL = "iql_unavailable"
@@ -130,6 +135,8 @@ class PaperOpsSession:
         self._mode = PaperModeControls()
         self._inference: IqlInferencePort | None = None
         self._bound_lineage: BoundModelLineage | None = None
+        self._registry: RegistryService | None = None
+        self._last_promote: dict[str, Any] | None = None
         self._last_inference: InferenceOutcome | None = None
         self._pause_reason: str | None = None
         self._fallback_reason: str | None = None
@@ -151,6 +158,11 @@ class PaperOpsSession:
         """Inject research transition repository used by export-from-run."""
 
         self._transition_repo = repository
+
+    def attach_registry(self, registry: RegistryService) -> None:
+        """Attach shared RegistryService used by promote-model."""
+
+        self._registry = registry
 
     def bind_active_model(self, *, model_id: str, registry_state: RegistryState) -> None:
         """Bind the research registry model used for Model Qualification."""
@@ -198,6 +210,7 @@ class PaperOpsSession:
             "set-mode": self._cmd_set_mode,
             "set-budget": self._cmd_set_budget,
             "bind-model": self._cmd_bind_model,
+            "promote-model": self._cmd_promote_model,
             "export-from-run": self._cmd_export_from_run,
         }
         if command not in handlers:
@@ -233,6 +246,8 @@ class PaperOpsSession:
                 action_translator_version=(
                     None if lineage is None else lineage.action_translator_version
                 ),
+                unlocked_modes=list(unlocked_modes_for(self._mode.registry_state)),
+                last_promote=self._last_promote,
                 inference_latency_budget_ms=self._mode.budget.limit_ms,
                 pause_reason=self._pause_reason,
                 fallback_reason=self._fallback_reason,
@@ -636,6 +651,45 @@ class PaperOpsSession:
                 "action_translator_version": lineage.action_translator_version,
             },
         )
+        return self._events[-1].event_id
+
+    def _cmd_promote_model(self, payload: dict[str, Any]) -> UUID:
+        """Promote a registry model one legal edge; sync Ops qualification state."""
+
+        if self._registry is None:
+            raise ValueError("registry is not attached")
+        try:
+            result = promote_registry_model(
+                self._registry,
+                model_id=str(payload["model_id"]),
+                target=str(payload["target"]),
+                actor=str(payload.get("actor", "")),
+                reason=str(payload.get("reason", "")),
+            )
+        except PromoteError as error:
+            self._persist_and_emit(
+                "strategy.promote_rejected",
+                {"code": error.code, "message": str(error)},
+            )
+            raise ValueError(str(error)) from error
+        except KeyError as error:
+            raise ValueError(f"missing promote field: {error.args[0]}") from error
+
+        model_id = str(result.model.model_id)
+        # Sync qualification metadata when promoting the active Ops model.
+        if self._mode.model_id is None or self._mode.model_id == model_id:
+            self._mode.bind_active_model(
+                model_id=model_id,
+                registry_state=result.target,
+            )
+        self._last_promote = {
+            "model_id": model_id,
+            "actor": result.actor,
+            "reason": result.reason,
+            "source": None if result.source is None else result.source.value,
+            "target": result.target.value,
+        }
+        self._persist_and_emit("strategy.model_promoted", dict(self._last_promote))
         return self._events[-1].event_id
 
     def _iql_healthy(self) -> bool:

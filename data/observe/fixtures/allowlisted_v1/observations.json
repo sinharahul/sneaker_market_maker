@@ -1,0 +1,23 @@
+{
+  "allowlist_version": "product-families-v1",
+  "observations": [
+    {
+      "event_id": "obs-1",
+      "product_family": "jordan_1_retro",
+      "style_code": "555088-134",
+      "shoe_size": "10",
+      "highest_bid": "220.00",
+      "lowest_ask": "275.00",
+      "observed_at": "2026-07-18T12:00:00+00:00"
+    },
+    {
+      "event_id": "obs-2",
+      "product_family": "nike_dunk_low",
+      "style_code": "DD1391-100",
+      "shoe_size": "9",
+      "highest_bid": "110.00",
+      "lowest_ask": "140.00",
+      "observed_at": "2026-07-18T12:01:00+00:00"
+    }
+  ]
+}

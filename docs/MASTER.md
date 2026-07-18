@@ -214,12 +214,14 @@ Gate remains final in every mode.
 | Paper tick → fill, modules | [`paper-ops/junior-e2e-flow.md`](paper-ops/junior-e2e-flow.md) |
 | Run Ops / commands | [`paper-ops/operator-cheat-sheet.md`](paper-ops/operator-cheat-sheet.md) |
 | Bind / qualify registry artifact | [`paper-ops/bind-qualify-runbook.md`](paper-ops/bind-qualify-runbook.md) |
+| Observe-only market data (L1) | [`observe/README.md`](observe/README.md) |
 | Audit events / projections | [`paper-ops/auditor-reconstructibility.md`](paper-ops/auditor-reconstructibility.md) |
 | Research stack end-to-end | [`research/junior-walkthrough.md`](research/junior-walkthrough.md) |
 | **Senior architect blueprint** | [`research/senior-architect-walkthrough.md`](research/senior-architect-walkthrough.md) |
 | **Exercise research pipeline** | [`research/exercise-pipeline.md`](research/exercise-pipeline.md) |
 | Deep quantitative context | [`research/QUANTITATIVE_CONTEXT.md`](research/QUANTITATIVE_CONTEXT.md) |
 | Why golden replay / deterministic-first / Gate-final IQL | ADRs [`0001`](adr/0001-golden-historical-replay-for-v1.md), [`0002`](adr/0002-deterministic-first-paper-mm.md), [`0003`](adr/0003-iql-strategy-modes-gate-final.md) |
+| PFHedge paper mode deferred | ADR [`0005`](adr/0005-pfhedge-paper-mode-deferred.md) |
 | **Roadmap (research loop + live readiness)** | [`ROADMAP.md`](ROADMAP.md) · [dual-track spec](superpowers/specs/2026-07-18-dual-track-roadmap.md) |
 
 **Local surfaces**

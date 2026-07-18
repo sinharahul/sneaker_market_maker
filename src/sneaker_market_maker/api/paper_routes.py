@@ -26,6 +26,7 @@ COMMANDS = frozenset(
         "set-mode",
         "set-budget",
         "bind-model",
+        "promote-model",
         "export-from-run",
     }
 )
