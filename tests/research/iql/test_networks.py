@@ -110,6 +110,10 @@ def test_inference_target_is_deep_copy_without_gradients() -> None:
     assert all(not parameter.requires_grad for parameter in target.parameters())
     assert target is not critic
 
+    for online, copied in zip(critic.parameters(), target.parameters(), strict=True):
+        torch.testing.assert_close(online, copied)
+        assert online is not copied
+
     with torch.no_grad():
         for parameter in critic.parameters():
             parameter.add_(1.0)
