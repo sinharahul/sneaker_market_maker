@@ -4,8 +4,8 @@
 
 **Blocked by:** 10 — advisory fallback; 13 — mode projections audit
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Acceptance proves advisory nudge produces gated paper effect under stub IQL
-- [ ] Acceptance proves late/invalid fallback to deterministic base without pause
-- [ ] Qualification refusal is covered at the control plane
+- [x] Acceptance proves advisory nudge produces gated paper effect under stub IQL
+- [x] Acceptance proves late/invalid fallback to deterministic base without pause
+- [x] Qualification refusal is covered at the control plane

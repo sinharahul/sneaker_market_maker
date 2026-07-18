@@ -4,8 +4,8 @@
 
 **Blocked by:** 07 — set-mode; 10 — advisory fallback; 12 — iql_primary pause
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Status/projections include mode, budget, pause-for-IQL vs operator pause, last action summary
-- [ ] Audit records mode changes, inference outcomes, and fallback/pause events
-- [ ] Control-plane tests read these fields after advisory fallback and iql pause
+- [x] Status/projections include mode, budget, pause-for-IQL vs operator pause, last action summary
+- [x] Audit records mode changes, inference outcomes, and fallback/pause events
+- [x] Control-plane tests read these fields after advisory fallback and iql pause

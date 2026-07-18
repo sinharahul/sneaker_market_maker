@@ -28,6 +28,7 @@ from sneaker_market_maker.paper.inference import (
 )
 from sneaker_market_maker.paper.intents import IntentKind, QuoteIntent, Side
 from sneaker_market_maker.paper.inventory import InventoryLedger, LotState
+from sneaker_market_maker.paper.mode_path import apply_strategy_mode
 from sneaker_market_maker.paper.ops_mode import PaperModeControls
 from sneaker_market_maker.paper.projections import (
     capital_projection,
@@ -45,6 +46,9 @@ from sneaker_market_maker.paper.replay.simulator import HistoricalReplaySimulato
 from sneaker_market_maker.paper.strategy_mode import QualificationError, StrategyMode
 from sneaker_market_maker.persistence.paper_repository import InMemoryPaperStore
 from sneaker_market_maker.research.registry.service import RegistryState
+
+PAUSE_OPERATOR = "operator"
+PAUSE_IQL = "iql_unavailable"
 
 DEFAULT_GOLDEN_ROOT = Path(__file__).resolve().parents[3] / "data" / "paper" / "golden_v1"
 DEFAULT_FEES = VersionedFees(
@@ -104,6 +108,10 @@ class PaperOpsSession:
         self._mode = PaperModeControls()
         self._inference: IqlInferencePort | None = None
         self._last_inference: InferenceOutcome | None = None
+        self._pause_reason: str | None = None
+        self._fallback_reason: str | None = None
+        self._last_iql_action: dict[str, Any] | None = None
+        self._last_market_event: MarketReplayEvent | None = None
 
     def bind_active_model(self, *, model_id: str, registry_state: RegistryState) -> None:
         """Bind the research registry model used for Model Qualification."""
@@ -158,6 +166,9 @@ class PaperOpsSession:
                     else self._mode.registry_state.value
                 ),
                 inference_latency_budget_ms=self._mode.budget.limit_ms,
+                pause_reason=self._pause_reason,
+                fallback_reason=self._fallback_reason,
+                last_iql_action=self._last_iql_action,
             )
         if resource == "capital":
             return capital_projection(self._execution.capital)
@@ -199,14 +210,25 @@ class PaperOpsSession:
 
     def _cmd_pause(self, _payload: dict[str, Any]) -> UUID:
         self._simulator.pause()
-        return self._emit("replay.paused", {})
+        self._pause_reason = PAUSE_OPERATOR
+        return self._emit("replay.paused", {"reason": PAUSE_OPERATOR})
 
     def _cmd_resume(self, _payload: dict[str, Any]) -> UUID:
+        if (
+            self._pause_reason == PAUSE_IQL
+            and self._mode.machine.mode is StrategyMode.IQL_PRIMARY
+            and not self._iql_healthy()
+        ):
+            raise ValueError(
+                "replay paused for IQL unavailability; switch mode or restore healthy IQL"
+            )
         self._simulator.resume()
+        self._pause_reason = None
         return self._emit("replay.resumed", {})
 
     def _cmd_stop(self, _payload: dict[str, Any]) -> UUID:
         self._simulator.stop()
+        self._pause_reason = None
         return self._emit("replay.stopped", {})
 
     def _cmd_enable(self, _payload: dict[str, Any]) -> UUID:
@@ -267,6 +289,7 @@ class PaperOpsSession:
     def _cmd_tick(self, _payload: dict[str, Any]) -> UUID:
         batch = self._simulator.tick()
         for event in batch:
+            self._last_market_event = event
             fills = self._execution.match(event, simulation_time=event.source_timestamp)
             for fill in fills:
                 if fill.side is Side.BUY:
@@ -275,9 +298,30 @@ class PaperOpsSession:
                             self._ledger.advance_to_available(lot.lot_id)
             self._quotes.sync_capital(self._execution.capital)
             self._last_inference = self._inference_for_event(event)
-            for intent, decision in self._quotes.on_market(
-                event, simulation_time=event.source_timestamp
-            ):
+            tick = apply_strategy_mode(
+                mode=self._mode.machine.mode,
+                quotes=self._quotes,
+                event=event,
+                simulation_time=event.source_timestamp,
+                inference=self._last_inference,
+            )
+            self._fallback_reason = None if tick.pause_for_iql else tick.fallback_reason
+            if tick.last_action_summary is not None:
+                self._last_iql_action = tick.last_action_summary
+            if tick.fallback_reason is not None and not tick.pause_for_iql:
+                self._persist_and_emit(
+                    "strategy.advisory_fallback",
+                    {"reason": tick.fallback_reason},
+                )
+            if tick.pause_for_iql:
+                self._simulator.pause()
+                self._pause_reason = PAUSE_IQL
+                self._persist_and_emit(
+                    "replay.paused_iql",
+                    {"reason": tick.fallback_reason or "invalid_inference"},
+                )
+                break
+            for intent, decision in tick.intents:
                 if decision.accepted:
                     self._execution.submit(intent, preapproved=decision)
             self._quotes.sync_capital(self._execution.capital)
@@ -307,6 +351,12 @@ class PaperOpsSession:
         )
         return TimedIqlInference(self._inference, self._mode.budget).infer(state)
 
+    def _iql_healthy(self) -> bool:
+        if self._inference is None or self._last_market_event is None:
+            return False
+        outcome = self._inference_for_event(self._last_market_event)
+        return outcome is not None and outcome.valid
+
     def _cmd_set_mode(self, payload: dict[str, Any]) -> UUID:
         mode = StrategyMode(str(payload["mode"]))
         try:
@@ -317,6 +367,11 @@ class PaperOpsSession:
                 self._mode.rejection_payload(mode, error),
             )
             raise ValueError(str(error)) from error
+        if (
+            mode is StrategyMode.DETERMINISTIC
+            and self._pause_reason == PAUSE_IQL
+        ):
+            self._pause_reason = PAUSE_OPERATOR
         self._persist_and_emit("strategy.mode_set", event_payload)
         return self._events[-1].event_id
 

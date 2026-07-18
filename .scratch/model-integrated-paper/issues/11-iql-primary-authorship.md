@@ -4,8 +4,8 @@
 
 **Blocked by:** 01 — QUOTE mapping; 02 — CANCEL/NO_OP; 04 — inference port; 07 — set-mode; 08 — deterministic unchanged
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Valid IQL authors intents (not merely nudging deterministic)
-- [ ] Gate still rejects illegal intents
-- [ ] Session/control-plane tests show IQL-authored orders under stub
+- [x] Valid IQL authors intents (not merely nudging deterministic)
+- [x] Gate still rejects illegal intents
+- [x] Session/control-plane tests show IQL-authored orders under stub

@@ -1,6 +1,21 @@
 export type PaperStatus = {
   run_id: string | null;
   strategy_enabled: boolean;
+  strategy_mode: string;
+  registry: {
+    model_id: string | null;
+    state: string | null;
+  };
+  inference_latency_budget_ms: number;
+  pause_reason: string | null;
+  fallback_reason: string | null;
+  last_iql_action: {
+    source: string;
+    category: string;
+    allocation: number;
+    bid_offset_ticks: number;
+    ask_offset_ticks: number;
+  } | null;
   open_orders: number;
   fills: number;
   lots: number;
@@ -119,4 +134,8 @@ export const paperOpsCommands = {
   enable: (fetcher?: typeof fetch) => postCommand("enable", {}, fetcher),
   disable: (fetcher?: typeof fetch) => postCommand("disable", {}, fetcher),
   tick: (fetcher?: typeof fetch) => postCommand("tick", {}, fetcher),
+  setMode: (mode: string, fetcher?: typeof fetch) =>
+    postCommand("set-mode", { mode }, fetcher),
+  setBudget: (limitMs: number, fetcher?: typeof fetch) =>
+    postCommand("set-budget", { limit_ms: limitMs }, fetcher),
 };

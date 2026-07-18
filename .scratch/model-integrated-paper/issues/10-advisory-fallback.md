@@ -4,9 +4,9 @@
 
 **Blocked by:** 09 — Advisory Mode nudge path
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Timeout/invalid IQL yields deterministic-base quoting for that tick
-- [ ] Replay status remains running (not paused for IQL)
-- [ ] Fallback is visible in audit/projections
-- [ ] Tests cover timeout and invalid stub outcomes
+- [x] Timeout/invalid IQL yields deterministic-base quoting for that tick
+- [x] Replay status remains running (not paused for IQL)
+- [x] Fallback is visible in audit/projections
+- [x] Tests cover timeout and invalid stub outcomes

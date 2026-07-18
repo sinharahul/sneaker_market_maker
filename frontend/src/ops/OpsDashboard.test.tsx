@@ -10,6 +10,12 @@ const snapshot = (overrides: Partial<OpsSnapshot["status"]> = {}): OpsSnapshot =
   status: {
     run_id: "run-1",
     strategy_enabled: true,
+    strategy_mode: "deterministic",
+    registry: { model_id: null, state: null },
+    inference_latency_budget_ms: 100,
+    pause_reason: null,
+    fallback_reason: null,
+    last_iql_action: null,
     open_orders: 1,
     fills: 1,
     lots: 1,
@@ -67,6 +73,19 @@ const snapshot = (overrides: Partial<OpsSnapshot["status"]> = {}): OpsSnapshot =
   ],
 });
 
+const idleCommands = {
+  load: vi.fn(async () => undefined),
+  start: vi.fn(async () => undefined),
+  pause: vi.fn(async () => undefined),
+  resume: vi.fn(async () => undefined),
+  stop: vi.fn(async () => undefined),
+  enable: vi.fn(async () => undefined),
+  disable: vi.fn(async () => undefined),
+  tick: vi.fn(async () => undefined),
+  setMode: vi.fn(async () => undefined),
+  setBudget: vi.fn(async () => undefined),
+};
+
 describe("OpsDashboard", () => {
   it("renders authoritative projections and does not invent book rows", async () => {
     render(<OpsDashboard load={async () => snapshot()} />);
@@ -75,6 +94,7 @@ describe("OpsDashboard", () => {
     expect(screen.getByText(/Cash: 2274.00/)).toBeInTheDocument();
     expect(screen.getByText(/buy 555088-001 @ 221.00 — filled/)).toBeInTheDocument();
     expect(screen.getByText(/555088-001 available landed 226.00/)).toBeInTheDocument();
+    expect(screen.getByText(/Strategy Mode: deterministic/)).toBeInTheDocument();
   });
 
   it("runs load then refresh from projections after commands", async () => {
@@ -95,16 +115,7 @@ describe("OpsDashboard", () => {
         }),
       )
       .mockResolvedValue(snapshot());
-    const commands = {
-      load: vi.fn(async () => undefined),
-      start: vi.fn(async () => undefined),
-      pause: vi.fn(async () => undefined),
-      resume: vi.fn(async () => undefined),
-      stop: vi.fn(async () => undefined),
-      enable: vi.fn(async () => undefined),
-      disable: vi.fn(async () => undefined),
-      tick: vi.fn(async () => undefined),
-    };
+    const commands = { ...idleCommands, load: vi.fn(async () => undefined) };
 
     render(<OpsDashboard load={load} commands={commands} />);
     await screen.findByRole("heading", { name: "Ops Dashboard" });
@@ -112,6 +123,58 @@ describe("OpsDashboard", () => {
     expect(commands.load).toHaveBeenCalledTimes(1);
     expect(await screen.findByText(/golden-stockx-v1/)).toBeInTheDocument();
     expect(load.mock.calls.length).toBeGreaterThanOrEqual(2);
+  });
+
+  it("requests set-mode from projections-backed controls", async () => {
+    const load = vi
+      .fn()
+      .mockResolvedValueOnce(snapshot())
+      .mockResolvedValue(
+        snapshot({
+          strategy_mode: "advisory",
+          registry: { model_id: "iql-1", state: "advisory_approved" },
+          inference_latency_budget_ms: 150,
+        }),
+      );
+    const commands = { ...idleCommands, setMode: vi.fn(async () => undefined) };
+    render(<OpsDashboard load={load} commands={commands} />);
+    await screen.findByText(/Strategy Mode: deterministic/);
+    fireEvent.click(screen.getByRole("button", { name: "Mode: advisory" }));
+    expect(commands.setMode).toHaveBeenCalledWith("advisory");
+    expect(await screen.findByText(/Strategy Mode: advisory/)).toBeInTheDocument();
+    expect(screen.getByText(/Registry: iql-1 \(advisory_approved\)/)).toBeInTheDocument();
+    expect(screen.getByText(/Latency budget: 150ms/)).toBeInTheDocument();
+  });
+
+  it("labels IQL pause distinctly and shows last IQL action", async () => {
+    render(
+      <OpsDashboard
+        load={async () =>
+          snapshot({
+            strategy_mode: "iql_primary",
+            pause_reason: "iql_unavailable",
+            replay: {
+              status: "paused",
+              speed: 1,
+              events_emitted: 1,
+              events_total: 3,
+              dataset_id: "golden-stockx-v1",
+              source_kind: "historical",
+              simulation_time: null,
+            },
+            last_iql_action: {
+              source: "iql_primary",
+              category: "QUOTE",
+              allocation: 0.5,
+              bid_offset_ticks: 2,
+              ask_offset_ticks: -2,
+            },
+          })
+        }
+      />,
+    );
+    expect(await screen.findByText(/paused \(IQL unavailable\)/)).toBeInTheDocument();
+    expect(screen.getByText(/Last IQL action: QUOTE bid 2 ask -2/)).toBeInTheDocument();
   });
 
   it("fails closed when projections are unavailable", async () => {

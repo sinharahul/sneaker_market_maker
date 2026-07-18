@@ -11,6 +11,16 @@ type OpsDashboardProps = {
   commands?: typeof paperOpsCommands;
 };
 
+function pauseLabel(status: OpsSnapshot["status"]): string {
+  if (status.pause_reason === "iql_unavailable") {
+    return "paused (IQL unavailable)";
+  }
+  if (status.pause_reason === "operator") {
+    return "paused (operator)";
+  }
+  return status.replay.status;
+}
+
 export function OpsDashboard({
   load = loadOpsSnapshot,
   commands = paperOpsCommands,
@@ -88,6 +98,33 @@ export function OpsDashboard({
         </div>
       </section>
 
+      <section aria-labelledby="ops-mode">
+        <h2 id="ops-mode">Strategy Mode</h2>
+        <div className="actions">
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => void run(() => commands.setMode("deterministic"))}
+          >
+            Mode: deterministic
+          </button>
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => void run(() => commands.setMode("advisory"))}
+          >
+            Mode: advisory
+          </button>
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => void run(() => commands.setMode("iql_primary"))}
+          >
+            Mode: iql_primary
+          </button>
+        </div>
+      </section>
+
       {error !== null ? <p role="alert">{error}</p> : null}
       {snapshot === null && error === null ? (
         <p role="status">Loading paper projections</p>
@@ -97,9 +134,20 @@ export function OpsDashboard({
         <>
           <section aria-labelledby="ops-status">
             <h2 id="ops-status">Status</h2>
-            <p>{`Replay: ${snapshot.status.replay.status} (${snapshot.status.replay.events_emitted}/${snapshot.status.replay.events_total})`}</p>
+            <p>{`Replay: ${pauseLabel(snapshot.status)} (${snapshot.status.replay.events_emitted}/${snapshot.status.replay.events_total})`}</p>
             <p>{`Dataset: ${snapshot.status.replay.dataset_id ?? "none"}`}</p>
             <p>{`Strategy: ${snapshot.status.strategy_enabled ? "enabled" : "disabled"}`}</p>
+            <p>{`Strategy Mode: ${snapshot.status.strategy_mode}`}</p>
+            <p>{`Registry: ${snapshot.status.registry.model_id ?? "none"} (${snapshot.status.registry.state ?? "unbound"})`}</p>
+            <p>{`Latency budget: ${snapshot.status.inference_latency_budget_ms}ms`}</p>
+            <p>{`Fallback: ${snapshot.status.fallback_reason ?? "none"}`}</p>
+            <p>
+              {`Last IQL action: ${
+                snapshot.status.last_iql_action === null
+                  ? "none"
+                  : `${snapshot.status.last_iql_action.category} bid ${snapshot.status.last_iql_action.bid_offset_ticks} ask ${snapshot.status.last_iql_action.ask_offset_ticks}`
+              }`}
+            </p>
             <p>{`Cash: ${snapshot.status.capital.cash} / initial ${snapshot.status.capital.initial}`}</p>
             <p>{`P&L: ${snapshot.status.pnl.pnl} (equity ${snapshot.status.pnl.equity})`}</p>
           </section>

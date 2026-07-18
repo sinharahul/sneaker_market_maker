@@ -4,8 +4,8 @@
 
 **Blocked by:** 12 — iql_primary pause; 13 — mode projections; 14 — mode controls
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] UI labels IQL pause distinctly from operator pause
-- [ ] Last IQL action summary renders from projections
-- [ ] Vitest covers pause-reason display with fixture projections
+- [x] UI labels IQL pause distinctly from operator pause
+- [x] Last IQL action summary renders from projections
+- [x] Vitest covers pause-reason display with fixture projections

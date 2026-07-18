@@ -4,9 +4,9 @@
 
 **Blocked by:** 07 — set-mode; 13 — mode projections audit
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] UI can request set-mode / show current mode from projections
-- [ ] Qualification and budget are displayed from API read models
-- [ ] Guided Demo and research comparison remain separate and green
-- [ ] Vitest covers mode control wiring with injected loaders
+- [x] UI can request set-mode / show current mode from projections
+- [x] Qualification and budget are displayed from API read models
+- [x] Guided Demo and research comparison remain separate and green
+- [x] Vitest covers mode control wiring with injected loaders

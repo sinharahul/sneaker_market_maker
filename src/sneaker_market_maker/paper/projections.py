@@ -68,6 +68,9 @@ def status_projection(
     registry_model_id: str | None = None,
     registry_state: str | None = None,
     inference_latency_budget_ms: int = 100,
+    pause_reason: str | None = None,
+    fallback_reason: str | None = None,
+    last_iql_action: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     replay = simulator.projection()
     return {
@@ -76,6 +79,9 @@ def status_projection(
         "strategy_mode": strategy_mode,
         "registry": {"model_id": registry_model_id, "state": registry_state},
         "inference_latency_budget_ms": inference_latency_budget_ms,
+        "pause_reason": pause_reason,
+        "fallback_reason": fallback_reason,
+        "last_iql_action": last_iql_action,
         "replay": replay_projection(simulator),
         "capital": capital_projection(execution.capital),
         "pnl": pnl_projection(execution.capital, ledger),

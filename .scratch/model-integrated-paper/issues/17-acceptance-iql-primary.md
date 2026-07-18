@@ -4,8 +4,8 @@
 
 **Blocked by:** 12 — iql_primary pause; 13 — mode projections audit
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Acceptance proves IQL-authored intents under stub produce gated paper effect
-- [ ] Acceptance proves pause on invalid/late and distinct pause reason
-- [ ] Acceptance proves recovery via `deterministic` switch or healthy IQL
+- [x] Acceptance proves IQL-authored intents under stub produce gated paper effect
+- [x] Acceptance proves pause on invalid/late and distinct pause reason
+- [x] Acceptance proves recovery via `deterministic` switch or healthy IQL

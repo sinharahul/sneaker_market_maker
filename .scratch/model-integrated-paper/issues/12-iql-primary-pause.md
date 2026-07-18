@@ -4,9 +4,9 @@
 
 **Blocked by:** 11 — IQL-Primary Mode intent authorship
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Invalid/late IQL pauses replay with an IQL-unavailability reason
-- [ ] No silent deterministic substitute while mode remains `iql_primary`
-- [ ] Switching to `deterministic` allows resume under baseline quoting
-- [ ] Tests cover pause and both recovery paths
+- [x] Invalid/late IQL pauses replay with an IQL-unavailability reason
+- [x] No silent deterministic substitute while mode remains `iql_primary`
+- [x] Switching to `deterministic` allows resume under baseline quoting
+- [x] Tests cover pause and both recovery paths

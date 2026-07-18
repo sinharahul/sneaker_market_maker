@@ -13,6 +13,8 @@ from sneaker_market_maker.paper.intents import IntentKind, QuoteIntent, Side
 from sneaker_market_maker.paper.inventory_stub import QuoteInventory
 from sneaker_market_maker.paper.replay.loader import MarketReplayEvent
 
+_UNSET = object()
+
 
 @dataclass(frozen=True)
 class QuoteEngineConfig:
@@ -108,16 +110,10 @@ class QuoteEngine:
             results.extend(self._cancel_active(self._active_ask))
         return tuple(results)
 
-    def on_market(
-        self,
-        event: MarketReplayEvent,
-        *,
-        simulation_time: datetime,
-    ) -> tuple[tuple[QuoteIntent, GateDecision], ...]:
-        if not self._enabled:
-            self._desired_bid = None
-            self._desired_ask = None
-            return ()
+    def deterministic_desired(
+        self, event: MarketReplayEvent
+    ) -> tuple[Decimal, Decimal | None]:
+        """Compute Deterministic Strategy desired bid/ask for an event."""
 
         desired_bid = _money(event.highest_bid + self._config.bid_offset)
         lots = self._inventory.available_lot_count(
@@ -130,7 +126,30 @@ class QuoteEngine:
         )
         if desired_ask is not None and desired_ask <= desired_bid:
             desired_ask = None
+        return desired_bid, desired_ask
 
+    def on_market(
+        self,
+        event: MarketReplayEvent,
+        *,
+        simulation_time: datetime,
+        desired_bid: Decimal | None | object = _UNSET,
+        desired_ask: Decimal | None | object = _UNSET,
+    ) -> tuple[tuple[QuoteIntent, GateDecision], ...]:
+        if not self._enabled:
+            self._desired_bid = None
+            self._desired_ask = None
+            return ()
+
+        if desired_bid is _UNSET or desired_ask is _UNSET:
+            auto_bid, auto_ask = self.deterministic_desired(event)
+            if desired_bid is _UNSET:
+                desired_bid = auto_bid
+            if desired_ask is _UNSET:
+                desired_ask = auto_ask
+
+        assert desired_bid is None or isinstance(desired_bid, Decimal)
+        assert desired_ask is None or isinstance(desired_ask, Decimal)
         self._desired_bid = desired_bid
         self._desired_ask = desired_ask
 
@@ -151,6 +170,24 @@ class QuoteEngine:
                 simulation_time=simulation_time,
             )
         )
+        return tuple(results)
+
+    def cancel_all_actives(
+        self,
+        event: MarketReplayEvent,
+        *,
+        simulation_time: datetime,
+    ) -> tuple[tuple[QuoteIntent, GateDecision], ...]:
+        """Cancel both actives through the Deterministic Gate (IQL CANCEL)."""
+
+        _ = event, simulation_time
+        self._desired_bid = None
+        self._desired_ask = None
+        results: list[tuple[QuoteIntent, GateDecision]] = []
+        if self._active_bid is not None:
+            results.extend(self._cancel_active(self._active_bid))
+        if self._active_ask is not None:
+            results.extend(self._cancel_active(self._active_ask))
         return tuple(results)
 
     def _reconcile_side(
