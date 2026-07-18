@@ -43,7 +43,12 @@ from sneaker_market_maker.paper.quote_engine import QuoteEngine, QuoteEngineConf
 from sneaker_market_maker.paper.replay import load_golden_historical_replay
 from sneaker_market_maker.paper.replay.loader import MarketReplayEvent
 from sneaker_market_maker.paper.replay.simulator import HistoricalReplaySimulator
+from sneaker_market_maker.paper.step_effects import (
+    STEP_EFFECTS_EVENT,
+    capture_paper_step_effects,
+)
 from sneaker_market_maker.paper.strategy_mode import QualificationError, StrategyMode
+from sneaker_market_maker.persistence.paper_models import PaperBookSnapshot
 from sneaker_market_maker.persistence.paper_repository import InMemoryPaperStore
 from sneaker_market_maker.research.registry.service import RegistryState
 
@@ -288,6 +293,12 @@ class PaperOpsSession:
 
     def _cmd_tick(self, _payload: dict[str, Any]) -> UUID:
         batch = self._simulator.tick()
+        assert self._run_id is not None
+        before = book_snapshot(
+            run_id=self._run_id,
+            execution=self._execution,
+            ledger=self._ledger,
+        )
         for event in batch:
             self._last_market_event = event
             fills = self._execution.match(event, simulation_time=event.source_timestamp)
@@ -320,16 +331,49 @@ class PaperOpsSession:
                     "replay.paused_iql",
                     {"reason": tick.fallback_reason or "invalid_inference"},
                 )
+                self._emit_step_effects(
+                    before=before,
+                    source_event_id=event.event_id,
+                    simulation_time=event.source_timestamp,
+                )
                 break
             for intent, decision in tick.intents:
                 if decision.accepted:
                     self._execution.submit(intent, preapproved=decision)
             self._quotes.sync_capital(self._execution.capital)
+            before = self._emit_step_effects(
+                before=before,
+                source_event_id=event.event_id,
+                simulation_time=event.source_timestamp,
+            )
         self._persist_and_emit(
             "replay.ticked",
             {"events": len(batch), "event_ids": [event.event_id for event in batch]},
         )
         return self._events[-1].event_id
+
+    def _emit_step_effects(
+        self,
+        *,
+        before: PaperBookSnapshot,
+        source_event_id: str,
+        simulation_time: datetime | None,
+    ) -> PaperBookSnapshot:
+        assert self._run_id is not None
+        after = book_snapshot(
+            run_id=self._run_id,
+            execution=self._execution,
+            ledger=self._ledger,
+        )
+        effects = capture_paper_step_effects(
+            run_id=self._run_id,
+            simulation_time=simulation_time,
+            source_event_ids=(source_event_id,),
+            before=before,
+            after=after,
+        )
+        self._persist_and_emit(STEP_EFFECTS_EVENT, effects.to_payload())
+        return after
 
     def _inference_for_event(self, event: MarketReplayEvent) -> InferenceOutcome | None:
         """Run IQL only when Strategy Mode is not deterministic."""
