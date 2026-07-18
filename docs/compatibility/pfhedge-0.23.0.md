@@ -80,3 +80,16 @@ ruff==0.6.9
 
 `uvicorn[standard]` and `psycopg[binary]` are the pinned requirement forms;
 installed distribution metadata reports their base distribution names.
+
+## Task 26 acceptance re-run (2026-07-17)
+
+Re-validated on branch `feature/deep-bellman-pfhedge` at
+`cbfe839643432c1a88c1cc6805cb36c668ae3e83` with CPython 3.12.4:
+
+```text
+.venv/bin/python -m pytest tests/compatibility/test_pfhedge_public_api.py \
+  -q -m integration --import-mode=importlib
+```
+
+Result: `1 passed in 1.37s`. Full acceptance evidence is recorded in
+`docs/research/acceptance-checklist.md` (AC-06, AC-14).
