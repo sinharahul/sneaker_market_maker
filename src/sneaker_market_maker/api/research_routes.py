@@ -72,9 +72,14 @@ def validate_payload(payload: Mapping[str, JsonValue]) -> None:
     if len(encoded) > MAX_PAYLOAD_BYTES:
         raise ValueError("payload exceeds 64 KiB")
 
-    pending: list[Mapping[str, JsonValue]] = [payload]
+    pending: list[Mapping[str, JsonValue] | list[JsonValue]] = [payload]
     while pending:
         current = pending.pop()
+        if isinstance(current, list):
+            pending.extend(
+                item for item in current if isinstance(item, dict | list)
+            )
+            continue
         for key, value in current.items():
             normalized = key.casefold().replace("-", "_")
             if (
@@ -83,10 +88,8 @@ def validate_payload(payload: Mapping[str, JsonValue]) -> None:
                 or "blob" in normalized
             ):
                 raise ValueError(f"field '{key}' is not accepted")
-            if isinstance(value, dict):
+            if isinstance(value, dict | list):
                 pending.append(value)
-            elif isinstance(value, list):
-                pending.extend(item for item in value if isinstance(item, dict))
 
 
 async def _payload_from(request: Request) -> dict[str, JsonValue]:
