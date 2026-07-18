@@ -68,3 +68,20 @@ export interface ResearchPageProps {
   registry: RegistryView;
   trace: RecommendationTraceView;
 }
+
+export interface DemoSnapshotView {
+  index: number;
+  simulation_second: number;
+  paused: boolean;
+  beat: string;
+  deterministic_action: ActionView;
+  pfhedge_score: number;
+  iql_shadow_action: ActionView;
+  final_action: ActionView;
+  inventory_state: string;
+  fees: Record<string, string>;
+  cash: string;
+  nav: string;
+  realized_pnl: string;
+  unrealized_pnl: string;
+}
