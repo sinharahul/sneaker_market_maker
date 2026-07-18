@@ -21,6 +21,7 @@ live orders.
 Python **3.10–3.12**. Docs: **[master overview](docs/MASTER.md)** (start here),
 [Paper Ops](docs/paper-ops/README.md),
 [research junior walkthrough](docs/research/junior-walkthrough.md),
+[exercise research pipeline](docs/research/exercise-pipeline.md),
 [quantitative context](docs/research/QUANTITATIVE_CONTEXT.md),
 [acceptance checklist](docs/research/acceptance-checklist.md).
 
@@ -133,6 +134,9 @@ optimistic promotion).
 ---
 
 ## Test
+
+**Research pipeline how-to:** [`docs/research/exercise-pipeline.md`](docs/research/exercise-pipeline.md)
+(smoke → layer ladder → acceptance ACs → optional Docker → UI lab).
 
 Use `--import-mode=importlib` so duplicate test module basenames
 (`test_service.py` under registry vs transitions) collect cleanly.

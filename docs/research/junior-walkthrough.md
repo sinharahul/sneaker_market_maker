@@ -649,10 +649,11 @@ marketplace client” contract.
 
 ## How to run things locally
 
-```bash
-# From the deep-bellman-pfhedge worktree
-cd .worktrees/deep-bellman-pfhedge   # if you are at repo root
+Step-by-step research exercise runbook (pytest ladder + UI lab):
+[`docs/research/exercise-pipeline.md`](./exercise-pipeline.md).
 
+```bash
+# From repo root (venv activated)
 # Python tests (importlib avoids duplicate test_service.py module names)
 .venv/bin/python -m pytest -m "not integration" -q --import-mode=importlib
 
