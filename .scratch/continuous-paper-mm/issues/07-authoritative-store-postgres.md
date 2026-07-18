@@ -4,10 +4,10 @@
 
 **Blocked by:** 05 — Paper Orders + Fee-Aware Fills + matching; 06 — Inventory Lots lifecycle
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Core paper MM state survives process restart from Postgres
-- [ ] Append-only audit records intents, gate decisions, fills, and lot transitions
-- [ ] Money columns use exact decimal/integer types (no float accounting)
-- [ ] Integration tests with Postgres testcontainer (same pattern as research) pass
-- [ ] In-memory-only is not the accepted “done” path for this ticket
+- [x] Core paper MM state survives process restart from Postgres
+- [x] Append-only audit records intents, gate decisions, fills, and lot transitions
+- [x] Money columns use exact decimal/integer types (no float accounting)
+- [x] Integration tests with Postgres testcontainer (same pattern as research) pass
+- [x] In-memory-only is not the accepted “done” path for this ticket

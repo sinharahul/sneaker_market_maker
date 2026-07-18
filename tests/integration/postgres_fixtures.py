@@ -14,6 +14,14 @@ from sneaker_market_maker.persistence.database import (
     create_database_engine,
     create_session_factory,
 )
+from sneaker_market_maker.persistence.paper_tables import (
+    paper_audit_events,
+    paper_capital,
+    paper_fills,
+    paper_lots,
+    paper_orders,
+    paper_runs,
+)
 from sneaker_market_maker.persistence.research_tables import (
     action_schemas,
     behavior_policies,
@@ -54,6 +62,12 @@ def session_factory(engine):
             reward_schemas,
             action_schemas,
             mdp_state_schemas,
+            paper_audit_events,
+            paper_fills,
+            paper_lots,
+            paper_orders,
+            paper_capital,
+            paper_runs,
         ):
             connection.execute(delete(table))
     return create_session_factory(engine)

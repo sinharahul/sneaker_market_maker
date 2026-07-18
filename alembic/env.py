@@ -7,6 +7,7 @@ from logging.config import fileConfig
 
 from sqlalchemy import engine_from_config, pool
 
+import sneaker_market_maker.persistence.paper_tables  # noqa: F401 — register paper MM tables
 from alembic import context
 from sneaker_market_maker.persistence.research_tables import metadata
 
