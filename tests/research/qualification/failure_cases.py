@@ -1,5 +1,6 @@
 from tests.research.qualification.fixtures import (
     ARTIFACT_HASH,
+    MISMATCHED_ARTIFACT_HASH,
     POLICY_VERSION,
     evaluation_report,
     historical_override,
@@ -111,8 +112,12 @@ APPROVAL_REJECTION_CASES = [
     ({}, f"artifact {ARTIFACT_HASH} only"),
     (
         {},
+        f"I approve advisory use under benchmark policy {POLICY_VERSION}",
+    ),
+    (
+        {"artifact_hash": MISMATCHED_ARTIFACT_HASH},
         (
-            f"I approve advisory use for artifact {ARTIFACT_HASH} "
+            f"I approve advisory use for artifact {MISMATCHED_ARTIFACT_HASH} "
             f"under benchmark policy {POLICY_VERSION}"
         ),
     ),

@@ -19,6 +19,7 @@ from sneaker_market_maker.research.registry.service import (
 
 NOW = datetime(2026, 7, 17, tzinfo=timezone.utc)
 ARTIFACT_HASH = "a" * 64
+MISMATCHED_ARTIFACT_HASH = "d" * 64
 POLICY_VERSION = "advisory-qualification-v1"
 REPORT_ID = UUID(int=20)
 COMPATIBILITY = CompatibilityContract(

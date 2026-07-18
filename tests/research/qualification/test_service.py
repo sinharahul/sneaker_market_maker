@@ -80,7 +80,7 @@ def test_approve_transitions_to_advisory_only_with_explicit_confirmation() -> No
 
 @pytest.mark.parametrize(
     ("report_override", "confirmation"),
-    APPROVAL_REJECTION_CASES[:3],
+    APPROVAL_REJECTION_CASES,
 )
 def test_approve_rejects_unqualified_or_incomplete_confirmation(
     report_override: dict[str, object],
