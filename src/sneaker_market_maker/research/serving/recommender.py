@@ -10,6 +10,7 @@ from uuid import UUID
 
 from sneaker_market_maker.research.contracts.action import (
     ActionBounds,
+    ActionCategory,
     ActionMask,
     HybridAction,
     RawHybridAction,
@@ -89,7 +90,11 @@ class RecommendationService:
 
     def recommend(self, request: RecommendationRequest) -> RecommendationRecord:
         candidate = (
-            canonicalize_action(request.selected_model_action, request.bounds, request.mask)
+            self._canonicalize_candidate(
+                request.selected_model_action,
+                request.bounds,
+                request.mask,
+            )
             if request.selected_model_action is not None
             else None
         )
@@ -124,6 +129,18 @@ class RecommendationService:
         self.comparisons.save(record)
         return record
 
+    @staticmethod
+    def _canonicalize_candidate(
+        action: RawHybridAction,
+        bounds: ActionBounds,
+        mask: ActionMask,
+    ) -> HybridAction:
+        if not isinstance(action, RawHybridAction) or not isinstance(
+            action.category, ActionCategory
+        ):
+            raise ValueError("invalid action schema")
+        return canonicalize_action(action, bounds, mask)
+
     def _evaluate_gates(
         self,
         candidate: HybridAction,
@@ -131,7 +148,7 @@ class RecommendationService:
     ) -> GateResult:
         started_at = self._clock()
         result = self.gates.evaluate(candidate, risk_state)
-        if self._clock() - started_at > self._timeout_seconds:
+        if self._clock() - started_at >= self._timeout_seconds:
             return GateResult(False, (*result.results, ("timeout", False)))
         return result
 

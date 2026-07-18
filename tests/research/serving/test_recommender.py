@@ -23,6 +23,7 @@ DETERMINISTIC = HybridAction(ActionCategory.NO_OP, 0.0, 0, 0)
 RAW_QUOTE = RawHybridAction(ActionCategory.QUOTE, 1.4, -4.6, 2.6)
 BOUNDS = ActionBounds(-3, 3, -4, 2)
 MASK = ActionMask(True, True, True)
+GATE_NAMES = ("schema", "fees", "capital", "liquidity", "inventory", "exposure")
 
 
 class Gates:
@@ -103,6 +104,11 @@ def test_shadow_canonicalizes_rounds_clamps_but_never_changes_final_action() -> 
 @pytest.mark.parametrize(
     ("raw_action", "mask", "message"),
     [
+        (
+            RawHybridAction("QUOTE", 0.5, 0.0, 0.0),  # type: ignore[arg-type]
+            MASK,
+            "schema",
+        ),
         (RawHybridAction(ActionCategory.QUOTE, float("nan"), 0.0, 0.0), MASK, "finite"),
         (RAW_QUOTE, ActionMask(True, False, True), "masked"),
     ],
@@ -153,9 +159,20 @@ def test_gate_timeout_uses_injected_clock_and_fails_closed() -> None:
     assert record.fallback_reason == "timeout"
 
 
-@pytest.mark.parametrize("failed_gate", ["fees", "capital", "liquidity", "inventory", "exposure"])
+def test_gate_timeout_fails_closed_at_exact_deadline() -> None:
+    clock = Clock()
+    gates = Gates(clock=clock)
+    record = service(gates, clock=clock, timeout_seconds=1.0).recommend(
+        request(registry_state=RegistryState.ADVISORY_APPROVED)
+    )
+    assert record.final_action == DETERMINISTIC
+    assert record.gate_results[-1] == ("timeout", False)
+    assert record.fallback_reason == "timeout"
+
+
+@pytest.mark.parametrize("failed_gate", GATE_NAMES)
 def test_each_gate_failure_has_a_stable_reason(failed_gate: str) -> None:
-    results = (("schema", True), (failed_gate, False), ("later_gate", False))
+    results = tuple((name, name != failed_gate) for name in GATE_NAMES)
     gates = Gates(GateResult(False, results))
     record = service(gates).recommend(request(registry_state=RegistryState.ADVISORY_APPROVED))
     assert record.final_action == DETERMINISTIC
@@ -181,37 +198,38 @@ def test_approved_advisory_uses_candidate_only_when_all_checks_pass() -> None:
     assert record.fallback_reason is None
 
 
-def _paper_bytes(records: list[RecommendationRecord]) -> bytes:
+def _paper_bytes(actions: list[HybridAction]) -> bytes:
     commands = [
         {
-            **asdict(record.final_action),
-            "category": record.final_action.category.value,
+            **asdict(action),
+            "category": action.category.value,
         }
-        for record in records
+        for action in actions
     ]
     return json.dumps(commands, sort_keys=True, separators=(",", ":")).encode()
 
 
 def test_shadow_persists_comparisons_without_changing_full_paper_command_stream() -> None:
-    deterministic_requests = [
-        request(selected_model_action=None),
-        replace(request(), request_id=UUID(int=21), deterministic_action=HybridAction(
-            ActionCategory.CANCEL, 0.0, 0, 0
-        )),
+    deterministic_commands = [
+        DETERMINISTIC,
+        HybridAction(ActionCategory.CANCEL, 0.0, 0, 0),
     ]
     shadow_requests = [
-        replace(deterministic_requests[0], selected_model_action=RAW_QUOTE),
-        deterministic_requests[1],
+        request(deterministic_action=deterministic_commands[0]),
+        replace(
+            request(),
+            request_id=UUID(int=21),
+            deterministic_action=deterministic_commands[1],
+        ),
     ]
-    deterministic_store, shadow_store = Store(), Store()
+    shadow_store = Store()
+    shadow_service = service(store=shadow_store)
+    shadow_records = [shadow_service.recommend(item) for item in shadow_requests]
 
-    deterministic_records = [
-        service(store=deterministic_store).recommend(item) for item in deterministic_requests
-    ]
-    shadow_records = [service(store=shadow_store).recommend(item) for item in shadow_requests]
-
-    assert _paper_bytes(deterministic_records) == _paper_bytes(shadow_records)
+    deterministic_bytes = _paper_bytes(deterministic_commands)
+    shadow_bytes = _paper_bytes([record.final_action for record in shadow_records])
+    assert deterministic_bytes == shadow_bytes
     assert len(shadow_store.records) == 2
-    assert shadow_store.records[0].canonical_action is not None
-    assert shadow_store.records[0].pfhedge_action == RAW_QUOTE
-    assert shadow_store.records[0].iql_action == RAW_QUOTE
+    assert all(record.canonical_action is not None for record in shadow_store.records)
+    assert all(record.pfhedge_action == RAW_QUOTE for record in shadow_store.records)
+    assert all(record.iql_action == RAW_QUOTE for record in shadow_store.records)
