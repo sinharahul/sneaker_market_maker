@@ -33,6 +33,7 @@ class ActiveQuote:
     style_code: str
     shoe_size: Decimal
     placed_at: datetime
+    reserved_lot_id: str | None = None
 
 
 class QuoteEngine:
@@ -173,6 +174,13 @@ class QuoteEngine:
         event: MarketReplayEvent,
         simulation_time: datetime,
     ) -> list[tuple[QuoteIntent, GateDecision]]:
+        reserved_lot_id: str | None = None
+        if side is Side.SELL:
+            reserved_lot_id = self._inventory.reserve_for_ask(
+                event.product_family.value,
+                event.style_code,
+                event.shoe_size,
+            )
         intent = QuoteIntent(
             kind=IntentKind.PLACE,
             side=side,
@@ -188,19 +196,24 @@ class QuoteEngine:
             shoe_size=event.shoe_size,
         )
         decision = self._gate.evaluate(intent, self._capital)
-        if decision.accepted and decision.capital_after is not None:
+        if not decision.accepted:
+            if reserved_lot_id is not None:
+                self._inventory.release_reservation(reserved_lot_id)
+            return [(intent, decision)]
+        if decision.capital_after is not None:
             self._capital = decision.capital_after
-            quote = ActiveQuote(
-                quote_id=str(uuid4()),
-                side=side,
-                price=price,
-                principal=intent.principal,
-                product_family=event.product_family.value,
-                style_code=event.style_code,
-                shoe_size=event.shoe_size,
-                placed_at=simulation_time,
-            )
-            self._set_active(quote)
+        quote = ActiveQuote(
+            quote_id=str(uuid4()),
+            side=side,
+            price=price,
+            principal=intent.principal,
+            product_family=event.product_family.value,
+            style_code=event.style_code,
+            shoe_size=event.shoe_size,
+            placed_at=simulation_time,
+            reserved_lot_id=reserved_lot_id,
+        )
+        self._set_active(quote)
         return [(intent, decision)]
 
     def _submit_replace(
@@ -238,6 +251,7 @@ class QuoteEngine:
                 style_code=event.style_code,
                 shoe_size=event.shoe_size,
                 placed_at=simulation_time,
+                reserved_lot_id=active.reserved_lot_id,
             )
             self._set_active(quote)
         return [(intent, decision)]
@@ -262,6 +276,8 @@ class QuoteEngine:
         if decision.accepted:
             if decision.capital_after is not None:
                 self._capital = decision.capital_after
+            if active.side is Side.SELL and active.reserved_lot_id is not None:
+                self._inventory.release_reservation(active.reserved_lot_id)
             if active.side is Side.BUY:
                 self._active_bid = None
             else:

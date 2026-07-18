@@ -4,10 +4,10 @@
 
 **Blocked by:** 05 — Paper Orders + Fee-Aware Fills + matching
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Buy fill creates a uniquely identified Inventory Lot with landed cost basis
-- [ ] Only available lots can back an ask Quote Intent
-- [ ] Reservation is exclusive; double-reserve fails closed
-- [ ] Sale/settlement and exception paths update lot state and audit
-- [ ] Tests cover lifecycle transitions and ask-backing rules
+- [x] Buy fill creates a uniquely identified Inventory Lot with landed cost basis
+- [x] Only available lots can back an ask Quote Intent
+- [x] Reservation is exclusive; double-reserve fails closed
+- [x] Sale/settlement and exception paths update lot state and audit
+- [x] Tests cover lifecycle transitions and ask-backing rules

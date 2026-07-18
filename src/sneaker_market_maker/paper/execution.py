@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime
 from decimal import Decimal
+from typing import TYPE_CHECKING
 from uuid import uuid4
 
 from sneaker_market_maker.core import FeeSchedule
@@ -13,6 +14,9 @@ from sneaker_market_maker.paper.gate import DeterministicGate
 from sneaker_market_maker.paper.intents import IntentKind, QuoteIntent, Side
 from sneaker_market_maker.paper.orders import OrderStatus, PaperOrder
 from sneaker_market_maker.paper.replay.loader import MarketReplayEvent
+
+if TYPE_CHECKING:
+    from sneaker_market_maker.paper.inventory import InventoryLedger
 
 
 @dataclass(frozen=True)
@@ -57,11 +61,13 @@ class PaperExecutionEngine:
         gate: DeterministicGate,
         fees: VersionedFees,
         slippage: SlippageModel,
+        inventory: InventoryLedger | None = None,
     ) -> None:
         self._capital = capital
         self._gate = gate
         self._fees = fees
         self._slippage = slippage
+        self._inventory = inventory
         self._orders: dict[str, PaperOrder] = {}
         self._fills: list[FeeAwareFill] = []
         self._open_by_key: dict[tuple[str, str, str, Side], str] = {}
@@ -185,12 +191,23 @@ class PaperExecutionEngine:
         else:
             if event.highest_bid < order.price:
                 return None
+            reserved_lot_id: str | None = None
+            if self._inventory is not None:
+                reserved_lot_id = self._inventory.find_reserved(
+                    order.product_family,
+                    order.style_code,
+                    order.shoe_size,
+                )
+                if reserved_lot_id is None:
+                    return None
             raw = _money(event.highest_bid - self._slippage.sell_slippage)
             execution = max(order.price, raw)
             slippage = _money(event.highest_bid - execution)
             proceeds = self._fees.schedule.sale_proceeds(execution)
             total_fees = _money(execution - proceeds)
             self._capital = self._capital.apply_sell_fill(proceeds=proceeds)
+            if reserved_lot_id is not None and self._inventory is not None:
+                self._inventory.mark_sold(reserved_lot_id)
 
         order.status = OrderStatus.FILLED
         self._open_by_key.pop(self._key(order), None)
@@ -212,6 +229,8 @@ class PaperExecutionEngine:
             simulation_time=simulation_time,
         )
         self._fills.append(fill)
+        if order.side is Side.BUY and self._inventory is not None:
+            self._inventory.create_from_buy_fill(fill)
         return fill
 
     @staticmethod
