@@ -19,8 +19,10 @@ live orders.
 | Local UI | Guided 5-minute demo + research comparison page + Ops Dashboard |
 
 Python **3.10–3.12**. Docs: **[master overview](docs/MASTER.md)** (start here),
+[roadmap](docs/ROADMAP.md),
 [Paper Ops](docs/paper-ops/README.md),
 [research junior walkthrough](docs/research/junior-walkthrough.md),
+[senior architect walkthrough](docs/research/senior-architect-walkthrough.md),
 [exercise research pipeline](docs/research/exercise-pipeline.md),
 [quantitative context](docs/research/QUANTITATIVE_CONTEXT.md),
 [acceptance checklist](docs/research/acceptance-checklist.md).
