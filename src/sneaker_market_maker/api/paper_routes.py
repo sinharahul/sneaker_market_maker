@@ -25,6 +25,7 @@ COMMANDS = frozenset(
         "tick",
         "set-mode",
         "set-budget",
+        "bind-model",
         "export-from-run",
     }
 )

@@ -1,0 +1,11 @@
+{
+  "action_schema_version": "action-translator-v1",
+  "architecture": "distributional_iql_v1",
+  "artifact_hash": "083476702fd3fbed29e0404005647853fce11ecc26e3ae0f9736be445197c8af",
+  "environment_hash": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+  "feature_map_version": "paper-decision-encoder-v1",
+  "reward_version": "paper-reward-v1",
+  "run_manifest_hash": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+  "state_dim": 11,
+  "state_schema_version": "paper-decision-v1"
+}

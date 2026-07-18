@@ -213,6 +213,7 @@ Gate remains final in every mode.
 | Term definitions | [`CONTEXT.md`](../CONTEXT.md) |
 | Paper tick → fill, modules | [`paper-ops/junior-e2e-flow.md`](paper-ops/junior-e2e-flow.md) |
 | Run Ops / commands | [`paper-ops/operator-cheat-sheet.md`](paper-ops/operator-cheat-sheet.md) |
+| Bind / qualify registry artifact | [`paper-ops/bind-qualify-runbook.md`](paper-ops/bind-qualify-runbook.md) |
 | Audit events / projections | [`paper-ops/auditor-reconstructibility.md`](paper-ops/auditor-reconstructibility.md) |
 | Research stack end-to-end | [`research/junior-walkthrough.md`](research/junior-walkthrough.md) |
 | **Senior architect blueprint** | [`research/senior-architect-walkthrough.md`](research/senior-architect-walkthrough.md) |

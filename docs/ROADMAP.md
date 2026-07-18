@@ -74,17 +74,17 @@ Ops Strategy Modes load registry-pinned real weights + encoder; stubs remain tes
 
 **Exit criteria**
 
-- [ ] `advisory` / `iql_primary` happy path uses real registry artifact  
-- [ ] Encoder/schema mismatch fail-closed  
-- [ ] Acceptance: golden replay + real (or CI-pinned small) artifact proves nudge/pause under Gate  
+- [x] `advisory` / `iql_primary` happy path uses real registry artifact  
+- [x] Encoder/schema mismatch fail-closed  
+- [x] Acceptance: golden replay + real (or CI-pinned small) artifact proves nudge/pause under Gate  
 
-**Candidate work items**
+**Candidate work items** (filed — see `.scratch/r3-ops-bind/issues/`)
 
-1. Production inference binding from registry artifact id  
-2. Ops projection: model id, state, encoder/translator versions  
-3. Remove stub from default demo path (keep injectable port for tests)  
-4. Latency budget + qualification checks against real infer  
-5. Docs: operator bind/qualify runbook  
+1. `01` Registry artifact → inference bind ✅  
+2. `02` Ops projection of bound model ✅  
+3. `03` Happy path: no stub on advisory / iql_primary ✅  
+4. `04` Qualification + latency on real infer (parallel with 02/03 after 01) ✅  
+5. `05` Golden acceptance + bind/qualify runbook ✅  
 
 ### R4 — Promotion UX + optional PFHedge paper mode
 

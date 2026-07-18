@@ -11,9 +11,18 @@ from typing import Any
 from uuid import UUID, uuid4
 
 from sneaker_market_maker.core import FeeSchedule
+from sneaker_market_maker.paper.artifact_bind import (
+    ArtifactBindError,
+    BoundModelLineage,
+    bind_checkpoint_to_session,
+    ensure_ci_pinned_artifact,
+)
 from sneaker_market_maker.paper.book_snapshot import book_snapshot
 from sneaker_market_maker.paper.capital import PaperCapital, _money
-from sneaker_market_maker.paper.decision_state import build_paper_decision_state
+from sneaker_market_maker.paper.decision_state import (
+    DecisionStateError,
+    build_paper_decision_state,
+)
 from sneaker_market_maker.paper.execution import (
     PaperExecutionEngine,
     SlippageModel,
@@ -120,6 +129,7 @@ class PaperOpsSession:
         self._events: list[PaperEventEnvelope] = []
         self._mode = PaperModeControls()
         self._inference: IqlInferencePort | None = None
+        self._bound_lineage: BoundModelLineage | None = None
         self._last_inference: InferenceOutcome | None = None
         self._pause_reason: str | None = None
         self._fallback_reason: str | None = None
@@ -148,9 +158,25 @@ class PaperOpsSession:
         self._mode.bind_active_model(model_id=model_id, registry_state=registry_state)
 
     def bind_inference(self, port: IqlInferencePort) -> None:
-        """Inject the IQL inference port (stub or production)."""
+        """Inject the IQL inference port (stub or production). Clears bound lineage."""
 
         self._inference = port
+        self._bound_lineage = None
+
+    def apply_bound_artifact(
+        self,
+        *,
+        lineage: BoundModelLineage,
+        port: IqlInferencePort,
+    ) -> None:
+        """Apply a fail-closed production bind (weights + qualification metadata)."""
+
+        self._mode.bind_active_model(
+            model_id=lineage.model_id,
+            registry_state=lineage.registry_state,
+        )
+        self._inference = port
+        self._bound_lineage = lineage
 
     def execute(self, command: str, payload: dict[str, Any], idempotency_key: str) -> UUID:
         normalized = json.dumps(payload, sort_keys=True, separators=(",", ":"))
@@ -171,6 +197,7 @@ class PaperOpsSession:
             "tick": self._cmd_tick,
             "set-mode": self._cmd_set_mode,
             "set-budget": self._cmd_set_budget,
+            "bind-model": self._cmd_bind_model,
             "export-from-run": self._cmd_export_from_run,
         }
         if command not in handlers:
@@ -181,6 +208,7 @@ class PaperOpsSession:
 
     def get(self, resource: str) -> dict[str, Any]:
         if resource == "status":
+            lineage = self._bound_lineage
             return status_projection(
                 run_id=str(self._run_id) if self._run_id else None,
                 quotes=self._quotes,
@@ -194,6 +222,16 @@ class PaperOpsSession:
                     None
                     if self._mode.registry_state is None
                     else self._mode.registry_state.value
+                ),
+                registry_artifact_hash=(
+                    None if lineage is None else lineage.artifact_hash
+                ),
+                encoder_version=None if lineage is None else lineage.encoder_version,
+                state_schema_version=(
+                    None if lineage is None else lineage.state_schema_version
+                ),
+                action_translator_version=(
+                    None if lineage is None else lineage.action_translator_version
                 ),
                 inference_latency_budget_ms=self._mode.budget.limit_ms,
                 pause_reason=self._pause_reason,
@@ -531,13 +569,74 @@ class PaperOpsSession:
                 latency_ms=0.0,
                 reason="no_inference_port",
             )
-        state = build_paper_decision_state(
-            event=event,
-            capital=self._execution.capital,
-            orders=tuple(self._execution.orders.values()),
-            lots=self._ledger.lots(),
-        )
+        try:
+            state = build_paper_decision_state(
+                event=event,
+                capital=self._execution.capital,
+                orders=tuple(self._execution.orders.values()),
+                lots=self._ledger.lots(),
+            )
+        except DecisionStateError as error:
+            return InferenceOutcome(
+                valid=False,
+                action=None,
+                latency_ms=0.0,
+                reason=error.code,
+            )
         return TimedIqlInference(self._inference, self._mode.budget).infer(state)
+
+    def _cmd_bind_model(self, payload: dict[str, Any]) -> UUID:
+        """Bind a registry-pinned checkpoint (CI pin or checkpoint_dir + ops_lineage)."""
+
+        from sneaker_market_maker.paper.artifact_bind import load_ops_lineage
+
+        model_id = str(payload.get("model_id") or "ops-bound-model")
+        state_raw = payload.get("registry_state", RegistryState.ADVISORY_APPROVED.value)
+        try:
+            registry_state = RegistryState(str(state_raw))
+        except ValueError as error:
+            raise ValueError(f"unknown registry_state: {state_raw!r}") from error
+
+        use_ci = bool(payload.get("use_ci_pin", True)) and not payload.get(
+            "checkpoint_dir"
+        )
+        try:
+            if use_ci:
+                artifact = ensure_ci_pinned_artifact()
+            else:
+                checkpoint_dir = Path(str(payload["checkpoint_dir"]))
+                if (checkpoint_dir / "ops_lineage.json").exists():
+                    artifact = load_ops_lineage(checkpoint_dir)
+                else:
+                    raise ArtifactBindError(
+                        "incomplete_bind",
+                        "checkpoint_dir requires ops_lineage.json sidecar",
+                    )
+            lineage = bind_checkpoint_to_session(
+                self,
+                model_id=model_id,
+                registry_state=registry_state,
+                artifact=artifact,
+            )
+        except ArtifactBindError as error:
+            self._persist_and_emit(
+                "strategy.bind_rejected",
+                {"code": error.code, "message": str(error)},
+            )
+            raise ValueError(str(error)) from error
+
+        self._persist_and_emit(
+            "strategy.model_bound",
+            {
+                "model_id": lineage.model_id,
+                "registry_state": lineage.registry_state.value,
+                "artifact_hash": lineage.artifact_hash,
+                "feature_map_version": lineage.encoder_version,
+                "state_schema_version": lineage.state_schema_version,
+                "action_translator_version": lineage.action_translator_version,
+            },
+        )
+        return self._events[-1].event_id
 
     def _iql_healthy(self) -> bool:
         if self._inference is None or self._last_market_event is None:

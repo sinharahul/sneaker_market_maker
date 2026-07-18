@@ -22,7 +22,12 @@ from sneaker_market_maker.api.app import create_app
 from sneaker_market_maker.api.paper_routes import PaperServices
 from sneaker_market_maker.api.research_events import ResearchEventEnvelope
 from sneaker_market_maker.api.research_routes import JsonValue, ResearchServices
+from sneaker_market_maker.paper.artifact_bind import (
+    bind_checkpoint_to_session,
+    ensure_ci_pinned_artifact,
+)
 from sneaker_market_maker.paper.session import PaperOpsSession
+from sneaker_market_maker.research.registry.service import RegistryState
 
 _QUOTE = {
     "category": "QUOTE",
@@ -185,6 +190,13 @@ def create_demo_app():
     """FastAPI app factory for uvicorn `--factory` with Swagger at `/docs`."""
 
     paper = PaperOpsSession()
+    # Happy path: bind CI-pinned real weights (stubs remain injectable in tests only).
+    bind_checkpoint_to_session(
+        paper,
+        model_id="demo-iql-ci-v1",
+        registry_state=RegistryState.ADVISORY_APPROVED,
+        artifact=ensure_ci_pinned_artifact(),
+    )
     application = create_app(
         build_demo_services(),
         paper_services=PaperServices(
@@ -198,7 +210,8 @@ def create_demo_app():
     application.description = (
         "Loopback demo: research comparisons plus Paper Ops Control Plane. "
         "Guided React demo is fixture-only; `/?view=research` loads research; "
-        "`/?view=ops` drives `/api/paper`."
+        "`/?view=ops` drives `/api/paper`. Demo binds the CI-pinned IQL artifact "
+        "for advisory / iql_primary; deterministic always available."
     )
 
     @application.get("/", include_in_schema=False)

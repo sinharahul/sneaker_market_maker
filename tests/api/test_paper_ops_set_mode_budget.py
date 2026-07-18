@@ -40,7 +40,14 @@ def test_status_defaults_to_deterministic_and_default_budget() -> None:
     status = client.get("/api/paper/status").json()
     assert status["strategy_mode"] == "deterministic"
     assert status["inference_latency_budget_ms"] == 100
-    assert status["registry"] == {"model_id": None, "state": None}
+    assert status["registry"] == {
+        "model_id": None,
+        "state": None,
+        "artifact_hash": None,
+        "encoder_version": None,
+        "state_schema_version": None,
+        "action_translator_version": None,
+    }
 
 
 def test_set_budget_is_idempotent_and_rejects_above_ceiling() -> None:
@@ -70,10 +77,10 @@ def test_set_mode_idempotent_and_unqualified_refused() -> None:
         registry_state=RegistryState.BENCHMARK_QUALIFIED,
     )
     status = client.get("/api/paper/status").json()
-    assert status["registry"] == {
-        "model_id": "iql-bench-1",
-        "state": "benchmark_qualified",
-    }
+    assert status["registry"]["model_id"] == "iql-bench-1"
+    assert status["registry"]["state"] == "benchmark_qualified"
+    assert status["registry"]["artifact_hash"] is None
+    assert status["registry"]["encoder_version"] is None
 
     refused = _post(client, "set-mode", "mode-adv", {"mode": "advisory"})
     assert refused.status_code == 400

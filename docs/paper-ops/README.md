@@ -15,6 +15,7 @@ research comparison page.
 |-----|----------|---------------------|
 | [junior-e2e-flow.md](./junior-e2e-flow.md) | New contributor | How one tick flows from replay → Strategy Mode → Gate → fills, with module map |
 | [operator-cheat-sheet.md](./operator-cheat-sheet.md) | Operator | URLs, commands, and what to click when IQL pauses |
+| [bind-qualify-runbook.md](./bind-qualify-runbook.md) | Operator | Pin, qualify, and bind a real registry artifact (R3) |
 | [auditor-reconstructibility.md](./auditor-reconstructibility.md) | Auditor / reviewer | Audit `event_type`s and status projection fields |
 
 **Local demo:** backend `uvicorn sneaker_market_maker.api.local_demo:app --host 127.0.0.1 --port 8000`, frontend `npm run dev` → Ops at http://127.0.0.1:5173/?view=ops
