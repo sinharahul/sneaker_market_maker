@@ -4,10 +4,10 @@
 
 **Blocked by:** 02 — Fee-once paper reward projection
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Assembler emits OfflineTransition-shaped rows from paper-derived inputs
-- [ ] Content hash is stable for identical inputs
-- [ ] validate_trainable accepts complete rows; incomplete rows quarantine fail-closed
-- [ ] Past-only / adjacent-tick rule: no future leakage from later paper ticks
-- [ ] Unit tests cover happy-path assembly and quarantine of missing next-state or reward
+- [x] Assembler emits OfflineTransition-shaped rows from paper-derived inputs
+- [x] Content hash is stable for identical inputs
+- [x] validate_trainable accepts complete rows; incomplete rows quarantine fail-closed
+- [x] Past-only / adjacent-tick rule: no future leakage from later paper ticks
+- [x] Unit tests cover happy-path assembly and quarantine of missing next-state or reward

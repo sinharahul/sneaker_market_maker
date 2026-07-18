@@ -4,10 +4,10 @@
 
 **Blocked by:** 04 — Persist + export-from-run command
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Seeded golden load → start → tick path produces ≥1 trainable transition after export
-- [ ] Lineage fields tie transitions back to the paper run (and tick/fill where applicable)
-- [ ] Induced incomplete path still quarantines (no silent train)
-- [ ] Existing Strategy Mode / Gate acceptance tests remain green
-- [ ] Acceptance does not rely on Ops Vitest or Guided Demo as sole proof
+- [x] Seeded golden load → start → tick path produces ≥1 trainable transition after export
+- [x] Lineage fields tie transitions back to the paper run (and tick/fill where applicable)
+- [x] Induced incomplete path still quarantines (no silent train)
+- [x] Existing Strategy Mode / Gate acceptance tests remain green
+- [x] Acceptance does not rely on Ops Vitest or Guided Demo as sole proof

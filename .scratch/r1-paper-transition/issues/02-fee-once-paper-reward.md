@@ -4,10 +4,10 @@
 
 **Blocked by:** 01 — Paper step effects capture
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Adjacent step effects produce a RewardRecord consistent with fee-once accounting
-- [ ] Explanatory ledger ids present for each cost increment (or explicit zero/absent per contract)
-- [ ] Incomplete accounting quarantines / fails closed instead of inventing reward
-- [ ] Money remains Decimal through the projection (no float cash)
-- [ ] Unit tests cover profitable fill, fee-heavy fill, and incomplete-ledger quarantine
+- [x] Adjacent step effects produce a RewardRecord consistent with fee-once accounting
+- [x] Explanatory ledger ids present for each cost increment (or explicit zero/absent per contract)
+- [x] Incomplete accounting quarantines / fails closed instead of inventing reward
+- [x] Money remains Decimal through the projection (no float cash)
+- [x] Unit tests cover profitable fill, fee-heavy fill, and incomplete-ledger quarantine

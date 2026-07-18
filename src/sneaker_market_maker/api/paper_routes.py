@@ -25,10 +25,11 @@ COMMANDS = frozenset(
         "tick",
         "set-mode",
         "set-budget",
+        "export-from-run",
     }
 )
 READ_RESOURCES = frozenset(
-    {"status", "capital", "orders", "fills", "lots", "pnl", "replay"}
+    {"status", "capital", "orders", "fills", "lots", "pnl", "replay", "transitions"}
 )
 
 

@@ -4,10 +4,10 @@
 
 **Blocked by:** 03 — Paper→OfflineTransition assembler
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Trainable rows persist append-only into the research transition store
-- [ ] Quarantined rows are retained separately (or marked) and never silently promoted to trainable
-- [ ] Export/from-run command is idempotent for the same run + content hash (conflict on identity mismatch)
-- [ ] Lineage to paper run id remains queryable after export
-- [ ] API or Paper Ops control-plane test proves export for a seeded run without UI-only proof
+- [x] Trainable rows persist append-only into the research transition store
+- [x] Quarantined rows are retained separately (or marked) and never silently promoted to trainable
+- [x] Export/from-run command is idempotent for the same run + content hash (conflict on identity mismatch)
+- [x] Lineage to paper run id remains queryable after export
+- [x] API or Paper Ops control-plane test proves export for a seeded run without UI-only proof

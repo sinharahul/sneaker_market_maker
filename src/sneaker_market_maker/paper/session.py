@@ -12,12 +12,18 @@ from uuid import UUID, uuid4
 
 from sneaker_market_maker.core import FeeSchedule
 from sneaker_market_maker.paper.book_snapshot import book_snapshot
-from sneaker_market_maker.paper.capital import PaperCapital
+from sneaker_market_maker.paper.capital import PaperCapital, _money
 from sneaker_market_maker.paper.decision_state import build_paper_decision_state
 from sneaker_market_maker.paper.execution import (
     PaperExecutionEngine,
     SlippageModel,
     VersionedFees,
+)
+from sneaker_market_maker.paper.export_transitions import (
+    PaperStepCheckpoint,
+    build_paper_accounting,
+    export_checkpoints,
+    paper_decision_state,
 )
 from sneaker_market_maker.paper.gate import DeterministicGate
 from sneaker_market_maker.paper.inference import (
@@ -50,6 +56,8 @@ from sneaker_market_maker.paper.step_effects import (
 from sneaker_market_maker.paper.strategy_mode import QualificationError, StrategyMode
 from sneaker_market_maker.persistence.paper_models import PaperBookSnapshot
 from sneaker_market_maker.persistence.paper_repository import InMemoryPaperStore
+from sneaker_market_maker.persistence.research_repository import InMemoryResearchRepository
+from sneaker_market_maker.research.contracts.action import ActionCategory, HybridAction
 from sneaker_market_maker.research.registry.service import RegistryState
 
 PAUSE_OPERATOR = "operator"
@@ -117,6 +125,22 @@ class PaperOpsSession:
         self._fallback_reason: str | None = None
         self._last_iql_action: dict[str, Any] | None = None
         self._last_market_event: MarketReplayEvent | None = None
+        self._transition_repo = InMemoryResearchRepository()
+        self._checkpoints: list[PaperStepCheckpoint] = []
+        self._fee_ledger_ids: tuple[str, ...] = ("opening",)
+        self._seller_fees = Decimal("0.00")
+        self._processor_fees = Decimal("0.00")
+        self._shipping = Decimal("0.00")
+        self._authentication = Decimal("0.00")
+        self._slippage_fees = Decimal("0.00")
+        self._dataset_version = "unknown"
+        self._random_seed = 0
+        self._last_export: dict[str, Any] | None = None
+
+    def bind_transition_repository(self, repository: InMemoryResearchRepository) -> None:
+        """Inject research transition repository used by export-from-run."""
+
+        self._transition_repo = repository
 
     def bind_active_model(self, *, model_id: str, registry_state: RegistryState) -> None:
         """Bind the research registry model used for Model Qualification."""
@@ -147,6 +171,7 @@ class PaperOpsSession:
             "tick": self._cmd_tick,
             "set-mode": self._cmd_set_mode,
             "set-budget": self._cmd_set_budget,
+            "export-from-run": self._cmd_export_from_run,
         }
         if command not in handlers:
             raise KeyError(command)
@@ -187,6 +212,19 @@ class PaperOpsSession:
             return pnl_projection(self._execution.capital, self._ledger)
         if resource == "replay":
             return replay_projection(self._simulator)
+        if resource == "transitions":
+            rows = self._transition_repo.transitions
+            return {
+                "count": len(rows),
+                "trainable": sum(
+                    1 for row in rows if row.trainability_status == "trainable"
+                ),
+                "quarantined": sum(
+                    1 for row in rows if row.trainability_status == "quarantined"
+                ),
+                "transition_ids": [str(row.transition_id) for row in rows],
+                "last_export": self._last_export,
+            }
         raise KeyError(resource)
 
     def after(self, sequence: int) -> tuple[PaperEventEnvelope, ...]:
@@ -205,6 +243,9 @@ class PaperOpsSession:
             seed=seed,
             status="loaded",
         )
+        self._dataset_version = replay.manifest.dataset_id
+        self._random_seed = seed
+        self._append_opening_checkpoint()
         self._persist_and_emit("replay.loaded", {"dataset_id": replay.manifest.dataset_id})
         assert self._run_id is not None
         return self._run_id
@@ -303,6 +344,7 @@ class PaperOpsSession:
             self._last_market_event = event
             fills = self._execution.match(event, simulation_time=event.source_timestamp)
             for fill in fills:
+                self._attribute_fill_fees(fill)
                 if fill.side is Side.BUY:
                     for lot in self._ledger.lots():
                         if lot.source_fill_id == fill.fill_id and lot.state is LotState.PURCHASED:
@@ -315,6 +357,11 @@ class PaperOpsSession:
                 event=event,
                 simulation_time=event.source_timestamp,
                 inference=self._last_inference,
+            )
+            action = (
+                HybridAction(ActionCategory.QUOTE, 0.0, 0, 0)
+                if tick.intents
+                else HybridAction(ActionCategory.NO_OP, 0.0, 0, 0)
             )
             self._fallback_reason = None if tick.pause_for_iql else tick.fallback_reason
             if tick.last_action_summary is not None:
@@ -335,6 +382,8 @@ class PaperOpsSession:
                     before=before,
                     source_event_id=event.event_id,
                     simulation_time=event.source_timestamp,
+                    proposed_action=action,
+                    post_gate_action=action,
                 )
                 break
             for intent, decision in tick.intents:
@@ -345,6 +394,8 @@ class PaperOpsSession:
                 before=before,
                 source_event_id=event.event_id,
                 simulation_time=event.source_timestamp,
+                proposed_action=action,
+                post_gate_action=action,
             )
         self._persist_and_emit(
             "replay.ticked",
@@ -358,6 +409,8 @@ class PaperOpsSession:
         before: PaperBookSnapshot,
         source_event_id: str,
         simulation_time: datetime | None,
+        proposed_action: HybridAction,
+        post_gate_action: HybridAction,
     ) -> PaperBookSnapshot:
         assert self._run_id is not None
         after = book_snapshot(
@@ -373,7 +426,98 @@ class PaperOpsSession:
             after=after,
         )
         self._persist_and_emit(STEP_EFFECTS_EVENT, effects.to_payload())
+        accounting = build_paper_accounting(
+            capital=self._execution.capital,
+            ledger=self._ledger,
+            ledger_entry_ids=self._fee_ledger_ids,
+            seller_fees=self._seller_fees,
+            processor_fees=self._processor_fees,
+            shipping=self._shipping,
+            authentication=self._authentication,
+            slippage=self._slippage_fees,
+        )
+        self._checkpoints.append(
+            PaperStepCheckpoint(
+                index=len(self._checkpoints),
+                simulation_time=simulation_time,
+                source_event_ids=(source_event_id,),
+                accounting=accounting,
+                state=paper_decision_state(
+                    capital=self._execution.capital,
+                    ledger=self._ledger,
+                ),
+                proposed_action=proposed_action,
+                post_gate_action=post_gate_action,
+                order_ids_added=effects.order_ids_added,
+                fill_ids_added=effects.fill_ids_added,
+                lot_ids_added=effects.lot_ids_added,
+            )
+        )
         return after
+
+    def _attribute_fill_fees(self, fill: Any) -> None:
+        fee = _money(fill.total_fees)
+        if fee <= 0:
+            return
+        if fill.side is Side.BUY:
+            self._shipping = _money(self._shipping + fee)
+            self._fee_ledger_ids = (*self._fee_ledger_ids, f"shipping:{fill.fill_id}")
+        else:
+            self._seller_fees = _money(self._seller_fees + fee)
+            self._fee_ledger_ids = (*self._fee_ledger_ids, f"seller_fees:{fill.fill_id}")
+
+    def _append_opening_checkpoint(self) -> None:
+        accounting = build_paper_accounting(
+            capital=self._execution.capital,
+            ledger=self._ledger,
+            ledger_entry_ids=self._fee_ledger_ids,
+            seller_fees=self._seller_fees,
+            processor_fees=self._processor_fees,
+            shipping=self._shipping,
+            authentication=self._authentication,
+            slippage=self._slippage_fees,
+        )
+        self._checkpoints.append(
+            PaperStepCheckpoint(
+                index=0,
+                simulation_time=None,
+                source_event_ids=("paper-open",),
+                accounting=accounting,
+                state=paper_decision_state(
+                    capital=self._execution.capital,
+                    ledger=self._ledger,
+                ),
+                proposed_action=HybridAction(ActionCategory.NO_OP, 0.0, 0, 0),
+                post_gate_action=HybridAction(ActionCategory.NO_OP, 0.0, 0, 0),
+                order_ids_added=(),
+                fill_ids_added=(),
+                lot_ids_added=(),
+            )
+        )
+
+    def _cmd_export_from_run(self, payload: dict[str, Any]) -> UUID:
+        assert self._run_id is not None
+        requested = payload.get("run_id")
+        if requested is not None and str(requested) != str(self._run_id):
+            raise ValueError("export run_id does not match active paper run")
+        summary = export_checkpoints(
+            checkpoints=tuple(self._checkpoints),
+            paper_run_id=self._run_id,
+            dataset_version=self._dataset_version,
+            random_seed=self._random_seed,
+            repository=self._transition_repo,
+        )
+        event_payload = {
+            "run_id": str(self._run_id),
+            "created": summary.created,
+            "existing": summary.existing,
+            "quarantined": summary.quarantined,
+            "trainable": summary.trainable,
+            "transition_ids": list(summary.transition_ids),
+        }
+        self._last_export = event_payload
+        self._persist_and_emit("transitions.exported", event_payload)
+        return self._events[-1].event_id
 
     def _inference_for_event(self, event: MarketReplayEvent) -> InferenceOutcome | None:
         """Run IQL only when Strategy Mode is not deterministic."""
@@ -450,6 +594,16 @@ class PaperOpsSession:
         )
         self._events.clear()
         self._run_id = None
+        self._checkpoints.clear()
+        self._fee_ledger_ids = ("opening",)
+        self._seller_fees = Decimal("0.00")
+        self._processor_fees = Decimal("0.00")
+        self._shipping = Decimal("0.00")
+        self._authentication = Decimal("0.00")
+        self._slippage_fees = Decimal("0.00")
+        self._last_export = None
+        self._dataset_version = "unknown"
+        self._random_seed = 0
 
     def _persist_and_emit(self, event_type: str, payload: dict[str, Any]) -> None:
         if self._run_id is not None:
