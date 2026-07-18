@@ -4,9 +4,9 @@
 
 **Blocked by:** None — can start immediately.
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Exactly one Strategy Mode is active at a time
-- [ ] Mode transitions are audited
-- [ ] Default mode is `deterministic`
-- [ ] Tests prove single-active-mode invariant and audit on change
+- [x] Exactly one Strategy Mode is active at a time
+- [x] Mode transitions are audited
+- [x] Default mode is `deterministic`
+- [x] Tests prove single-active-mode invariant and audit on change
