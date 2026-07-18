@@ -1,0 +1,125 @@
+:root {
+  color-scheme: light;
+  --ink: #1a1f16;
+  --muted: #5c6554;
+  --paper: #f3efe6;
+  --panel: #fffdf8;
+  --line: #d5cbb8;
+  --accent: #2f5d3a;
+  --warn: #8a3b12;
+  font-family: "Avenir Next", "Trebuchet MS", sans-serif;
+  line-height: 1.45;
+  color: var(--ink);
+  background:
+    radial-gradient(circle at top left, #e7efdf 0%, transparent 42%),
+    linear-gradient(160deg, #f7f3ea, #ebe4d6 55%, #e4ddd0);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+}
+
+main {
+  max-width: 52rem;
+  margin: 0 auto;
+  padding: 2rem 1.25rem 3rem;
+}
+
+h1,
+h2 {
+  font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+h1 {
+  margin: 0 0 0.35rem;
+  font-size: clamp(1.8rem, 4vw, 2.4rem);
+}
+
+h2 {
+  margin: 0 0 0.75rem;
+  font-size: 1.25rem;
+}
+
+[role="status"] {
+  margin: 0 0 1.25rem;
+  color: var(--accent);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 0.85rem;
+}
+
+[role="toolbar"] {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin-bottom: 1.5rem;
+}
+
+button {
+  appearance: none;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--ink);
+  padding: 0.55rem 0.95rem;
+  border-radius: 0.35rem;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+button:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+[role="region"] {
+  background: color-mix(in srgb, var(--panel) 92%, white);
+  border: 1px solid var(--line);
+  border-radius: 0.75rem;
+  padding: 1.25rem 1.35rem 1.5rem;
+  box-shadow: 0 12px 40px rgba(40, 36, 24, 0.06);
+}
+
+[role="region"] p {
+  margin: 0.35rem 0;
+  color: var(--muted);
+}
+
+[role="region"] p:has(+ p) {
+  color: var(--ink);
+}
+
+table {
+  width: 100%;
+  margin-top: 1.25rem;
+  border-collapse: collapse;
+}
+
+caption {
+  text-align: left;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  color: var(--ink);
+}
+
+th,
+td {
+  text-align: left;
+  padding: 0.45rem 0.35rem;
+  border-top: 1px solid var(--line);
+  font-variant-numeric: tabular-nums;
+}
+
+th[scope="row"] {
+  color: var(--muted);
+  font-weight: 500;
+  text-transform: capitalize;
+}
