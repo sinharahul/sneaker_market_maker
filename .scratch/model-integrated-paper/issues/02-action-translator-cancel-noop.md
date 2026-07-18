@@ -4,9 +4,9 @@
 
 **Blocked by:** 01 — Action Translator — QUOTE mapping
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] `CANCEL` translates to cancel-side semantics without placing new quotes
-- [ ] `NO_OP` emits no new Quote Intents
-- [ ] Invalid/out-of-bounds tick inputs fail closed with a stable error
-- [ ] Unit tests cover CANCEL, NO_OP, and fail-closed cases
+- [x] `CANCEL` translates to cancel-side semantics without placing new quotes
+- [x] `NO_OP` emits no new Quote Intents
+- [x] Invalid/out-of-bounds tick inputs fail closed with a stable error
+- [x] Unit tests cover CANCEL, NO_OP, and fail-closed cases
