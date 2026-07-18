@@ -1,4 +1,4 @@
-"""FastAPI application factory for the local research control plane."""
+"""FastAPI application factory for local research + paper ops control planes."""
 
 from __future__ import annotations
 
@@ -7,6 +7,8 @@ from ipaddress import ip_address
 
 from fastapi import Depends, FastAPI
 
+from sneaker_market_maker.api.paper_events import create_paper_event_router
+from sneaker_market_maker.api.paper_routes import PaperServices, create_paper_router
 from sneaker_market_maker.api.research_events import create_event_router
 from sneaker_market_maker.api.research_routes import ResearchServices, create_research_router
 
@@ -25,6 +27,7 @@ def _is_loopback(host: str) -> bool:
 def create_app(
     services: ResearchServices,
     *,
+    paper_services: PaperServices | None = None,
     bind_host: str = DEFAULT_BIND_HOST,
     authentication: Callable[..., object] | None = None,
 ) -> FastAPI:
@@ -38,6 +41,12 @@ def create_app(
     dependencies = [Depends(authentication)] if authentication is not None else []
     app.include_router(create_event_router(services.event_service), dependencies=dependencies)
     app.include_router(create_research_router(services), dependencies=dependencies)
+    if paper_services is not None:
+        app.include_router(
+            create_paper_event_router(paper_services.event_service),
+            dependencies=dependencies,
+        )
+        app.include_router(create_paper_router(paper_services), dependencies=dependencies)
     return app
 
 

@@ -19,8 +19,10 @@ from fastapi import HTTPException
 from fastapi.responses import RedirectResponse
 
 from sneaker_market_maker.api.app import create_app
+from sneaker_market_maker.api.paper_routes import PaperServices
 from sneaker_market_maker.api.research_events import ResearchEventEnvelope
 from sneaker_market_maker.api.research_routes import JsonValue, ResearchServices
+from sneaker_market_maker.paper.session import PaperOpsSession
 
 _QUOTE = {
     "category": "QUOTE",
@@ -182,11 +184,21 @@ def build_demo_services() -> ResearchServices:
 def create_demo_app():
     """FastAPI app factory for uvicorn `--factory` with Swagger at `/docs`."""
 
-    application = create_app(build_demo_services(), bind_host="127.0.0.1")
-    application.title = "Sneaker Market Maker Research API (local demo)"
+    paper = PaperOpsSession()
+    application = create_app(
+        build_demo_services(),
+        paper_services=PaperServices(
+            query_service=paper,
+            command_service=paper,
+            event_service=paper,
+        ),
+        bind_host="127.0.0.1",
+    )
+    application.title = "Sneaker Market Maker Local Control Plane"
     application.description = (
-        "Loopback demo control plane. Guided React demo is fixture-only; "
-        "`/?view=research` loads `/api/research/comparisons` from this server."
+        "Loopback demo: research comparisons plus Paper Ops Control Plane. "
+        "Guided React demo is fixture-only; `/?view=research` loads research; "
+        "`/?view=ops` drives `/api/paper`."
     )
 
     @application.get("/", include_in_schema=False)

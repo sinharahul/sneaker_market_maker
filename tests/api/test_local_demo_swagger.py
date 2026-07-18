@@ -12,13 +12,12 @@ def test_swagger_docs_are_available() -> None:
     assert "swagger" in response.text.casefold() or "openapi" in response.text.casefold()
 
 
-def test_openapi_schema_lists_research_routes() -> None:
+def test_openapi_schema_lists_research_and_paper_routes() -> None:
     client = TestClient(app)
     schema = client.get("/openapi.json").json()
     paths = schema["paths"]
-    assert "/api/research/comparisons" in paths or any(
-        path.startswith("/api/research/") for path in paths
-    )
+    assert any(path.startswith("/api/research/") for path in paths)
+    assert "/api/paper/status" in paths or any(path.startswith("/api/paper/") for path in paths)
     assert schema["info"]["title"].startswith("Sneaker Market Maker")
 
 

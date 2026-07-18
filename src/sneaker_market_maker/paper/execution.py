@@ -10,7 +10,7 @@ from uuid import uuid4
 
 from sneaker_market_maker.core import FeeSchedule
 from sneaker_market_maker.paper.capital import PaperCapital, _money
-from sneaker_market_maker.paper.gate import DeterministicGate
+from sneaker_market_maker.paper.gate import DeterministicGate, GateDecision
 from sneaker_market_maker.paper.intents import IntentKind, QuoteIntent, Side
 from sneaker_market_maker.paper.orders import OrderStatus, PaperOrder
 from sneaker_market_maker.paper.replay.loader import MarketReplayEvent
@@ -87,8 +87,19 @@ class PaperExecutionEngine:
     def open_orders(self) -> tuple[PaperOrder, ...]:
         return tuple(o for o in self._orders.values() if o.status is OrderStatus.OPEN)
 
-    def submit(self, intent: QuoteIntent) -> PaperOrder | None:
-        decision = self._gate.evaluate(intent, self._capital)
+    def submit(
+        self,
+        intent: QuoteIntent,
+        *,
+        preapproved: GateDecision | None = None,
+    ) -> PaperOrder | None:
+        """Apply a Quote Intent. Pass preapproved when the Deterministic Gate already ran."""
+
+        decision = (
+            preapproved
+            if preapproved is not None
+            else self._gate.evaluate(intent, self._capital)
+        )
         if not decision.accepted:
             return None
         if decision.capital_after is not None:

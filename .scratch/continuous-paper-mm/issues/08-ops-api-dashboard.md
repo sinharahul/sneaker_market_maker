@@ -4,10 +4,10 @@
 
 **Blocked by:** 02 — Simulation clock + replay controls; 07 — Authoritative Store (Postgres + audit)
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Operator can run First Shippable Slice end-to-end from the Ops Dashboard against Golden Historical Replay
-- [ ] UI does not treat optimistic local state as authoritative; projections/events do
-- [ ] Guided Demo and research comparison routes remain available and separately tested
-- [ ] Acceptance tests at the Paper Ops Control Plane seam prove a seeded replay produces observable capital, orders, fills, lots, and P&L
-- [ ] Default bind remains loopback-oriented; no live marketplace calls
+- [x] Operator can run First Shippable Slice end-to-end from the Ops Dashboard against Golden Historical Replay
+- [x] UI does not treat optimistic local state as authoritative; projections/events do
+- [x] Guided Demo and research comparison routes remain available and separately tested
+- [x] Acceptance tests at the Paper Ops Control Plane seam prove a seeded replay produces observable capital, orders, fills, lots, and P&L
+- [x] Default bind remains loopback-oriented; no live marketplace calls

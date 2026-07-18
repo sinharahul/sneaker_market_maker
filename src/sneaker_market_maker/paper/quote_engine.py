@@ -10,7 +10,7 @@ from uuid import uuid4
 from sneaker_market_maker.paper.capital import PaperCapital, _money
 from sneaker_market_maker.paper.gate import DeterministicGate, GateDecision
 from sneaker_market_maker.paper.intents import IntentKind, QuoteIntent, Side
-from sneaker_market_maker.paper.inventory_stub import StubInventory
+from sneaker_market_maker.paper.inventory_stub import QuoteInventory
 from sneaker_market_maker.paper.replay.loader import MarketReplayEvent
 
 
@@ -44,7 +44,7 @@ class QuoteEngine:
         *,
         gate: DeterministicGate,
         capital: PaperCapital,
-        inventory: StubInventory,
+        inventory: QuoteInventory,
         config: QuoteEngineConfig | None = None,
     ) -> None:
         self._gate = gate
@@ -83,6 +83,17 @@ class QuoteEngine:
 
     def enable(self) -> None:
         self._enabled = True
+
+    def sync_capital(self, capital: PaperCapital) -> None:
+        """Align quote-engine capital with the execution book after fills or submits."""
+
+        self._capital = capital
+
+    def clear_active(self, side: Side) -> None:
+        if side is Side.BUY:
+            self._active_bid = None
+        else:
+            self._active_ask = None
 
     def disable(self) -> tuple[tuple[QuoteIntent, GateDecision], ...]:
         """Stop maintaining quotes: cancel actives through the Deterministic Gate."""

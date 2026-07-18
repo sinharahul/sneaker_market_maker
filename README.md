@@ -115,6 +115,7 @@ Vite proxies `/api/*` → `http://127.0.0.1:8000`.
 |------|-----|-------------|
 | Guided demo | **http://127.0.0.1:5173/** | Hard-coded TS fixtures (`demoService.ts`) — Python optional |
 | Research comparison | **http://127.0.0.1:5173/?view=research** | Python `GET /api/research/comparisons` |
+| Ops Dashboard | **http://127.0.0.1:5173/?view=ops** | Python `/api/paper` commands + projections |
 
 If the API is down, the research page fails closed to **deterministic-only** (no
 optimistic promotion).
