@@ -3,6 +3,8 @@
 **Who this is for:** Engineers and research leads who want *why* before *where*.  
 **Hard rule:** Offline / paper only. **No live marketplace orders.** The Deterministic Gate always has the last say.
 
+**Progress:** Research↔paper loop closed (R0–R4). L1 read-only observe shipped. Live-send still gated on ADR-0004 — see [`../ROADMAP.md`](../ROADMAP.md).
+
 **Companions:** [`QUANTITATIVE_CONTEXT.md`](./QUANTITATIVE_CONTEXT.md) (full math) · [`../MASTER.md`](../MASTER.md) (product map) · [`exercise-pipeline.md`](./exercise-pipeline.md) (run tests)
 
 ---
@@ -32,7 +34,9 @@ On StockX-shaped sneaker markets, a naive “buy low, sell high” story fails f
 | Learn a policy from logs only | Distributional **IQL** (`IQLTrainer`) |
 | Fair baseline comparison | Deterministic / heuristic / MLP / **PFHedge 0.23.0** + `EvaluationHarness` |
 | Continuous paper quoting | Quote Engine + Strategy Modes + **Deterministic Gate** + Paper Capital / Lots |
-| Serve models safely | `RecommendationService` + `RegistryService` (shadow → advisory) |
+| Close the loop | `export-from-run` → retrain mix → registry promote → Ops `bind-model` |
+| Serve models safely | `RecommendationService` + `RegistryService` (shadow → advisory); Ops promote/bind |
+| Live readiness (no send) | `observe` read-only port (L1) |
 
 ### Worked toy (same numbers as `tests/test_core.py`)
 
@@ -364,6 +368,9 @@ Run path: [`exercise-pipeline.md`](./exercise-pipeline.md).
 | Exhaustive math | `docs/research/QUANTITATIVE_CONTEXT.md` |
 | Junior narrative | `docs/research/junior-walkthrough.md` |
 | Product front door | `docs/MASTER.md` |
+| Living roadmap | `docs/ROADMAP.md` |
 | Paper Ops | `docs/paper-ops/` |
+| Observe-only (L1) | `docs/observe/` |
+| PFHedge deferred | `docs/adr/0005-pfhedge-paper-mode-deferred.md` |
 
-**Out of scope:** live StockX/GOAT execution, ungated model trading, anti-bot evasion, treating synthetic stress as historical proof, float money in ledgers.
+**Out of scope:** live StockX/GOAT **order** execution, ungated model trading, anti-bot evasion, treating synthetic stress as historical proof, float money in ledgers.

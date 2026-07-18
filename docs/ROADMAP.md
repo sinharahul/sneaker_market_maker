@@ -1,6 +1,7 @@
 # Roadmap — Research↔Paper loop + Live readiness
 
 **Status:** living roadmap (milestone phases; no calendar dates)  
+**Progress (2026-07-18):** **Track R complete** (R0–R4). **L1 shipped.** Next: **L2** shadow would-quote → **L3** kill-switch / ADR-0004 (live-send still forbidden).  
 **Glossary:** [`CONTEXT.md`](../CONTEXT.md)  
 **Formal slice spec:** [`superpowers/specs/2026-07-18-dual-track-roadmap.md`](superpowers/specs/2026-07-18-dual-track-roadmap.md)  
 **Hard invariants:** Decimal money · Deterministic Gate final · no anti-bot / protection bypass · Product-Family Allowlist unless explicitly expanded · **no live-send without ADR-0004**
@@ -15,11 +16,11 @@
 | **L — Live readiness** | Parallel observe/rehearse work (read-only data, shadow “would quote”, kill-switch design). **Live-send only after Track R exit criteria + ADR-0004** |
 
 ```text
-Track R (paper/offline)          Track L (parallel, no send until gate)
-R0 done ──► R1 ──► R2 ──► R3 ──► R4
-                │
-                └── paper-loop proven ──► unlock L4 live-send (after ADR-0004)
-L1 ──► L2 ──► L3 ──► (wait) ──► L4 ──► L5
+Track R (paper/offline)                    Track L (parallel, no send until gate)
+R0 ✅ ──► R1 ✅ ──► R2 ✅ ──► R3 ✅ ──► R4 ✅
+                                              │
+                paper-loop proven ────────────┼──► unlock L4 live-send (after ADR-0004)
+L1 ✅ ──► L2 ──► L3 ──► (wait) ──► L4 ──► L5
 ```
 
 ---
@@ -176,5 +177,8 @@ Widen products/capital/modes only with explicit allowlist/ADR updates.
 |-----|------|
 | [`MASTER.md`](MASTER.md) | Product front door |
 | [`adr/0001`](adr/0001-golden-historical-replay-for-v1.md)–[`0003`](adr/0003-iql-strategy-modes-gate-final.md) | Replay, deterministic-first, Gate-final IQL |
+| [`adr/0005-pfhedge-paper-mode-deferred.md`](adr/0005-pfhedge-paper-mode-deferred.md) | R4: PFHedge stays research-only |
+| [`observe/README.md`](observe/README.md) | L1 read-only observe port |
+| [`paper-ops/bind-qualify-runbook.md`](paper-ops/bind-qualify-runbook.md) | Promote / bind / qualify Ops path |
 | [`superpowers/specs/2026-07-18-model-integrated-paper-slice.md`](superpowers/specs/2026-07-18-model-integrated-paper-slice.md) | R0 done slice |
-| [`superpowers/specs/2026-07-18-dual-track-roadmap.md`](superpowers/specs/2026-07-18-dual-track-roadmap.md) | Agent-ready roadmap spec |
+| [`superpowers/specs/2026-07-18-dual-track-roadmap.md`](superpowers/specs/2026-07-18-dual-track-roadmap.md) | Dual-track PRD (Track R done; L1 done) |

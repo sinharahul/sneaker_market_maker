@@ -4,6 +4,10 @@
 ships, what stays under research, and how IQL fits — with concrete trade and
 action examples.
 
+**Progress (2026-07-18):** Research↔paper loop **closed** (R0–R4). Live readiness
+**L1** (read-only observe) shipped. Next: L2 shadow → L3 ADR-0004 — **no live-send yet**.  
+See [`ROADMAP.md`](ROADMAP.md).
+
 **Glossary (canonical terms):** [`CONTEXT.md`](../CONTEXT.md)  
 **Paper Ops (tick → fill):** [`docs/paper-ops/`](paper-ops/README.md)  
 **Research math / layers:** [`docs/research/junior-walkthrough.md`](research/junior-walkthrough.md),
@@ -41,54 +45,61 @@ sell (inventory-backed ask). Flat inventory with no ask is allowed.
 | **Continuous Paper Market-Maker** | Control plane + simulation that quotes under replay, through a **Deterministic Gate**, with Decimal capital / fills / lots |
 | **StockX Historical Replay** | Authoritative market events for paper execution tests — starting with the checked-in **Golden Historical Replay Dataset** |
 | **Product-Family Allowlist** | Jordan 1 Retro and Nike Dunk Low only |
-| **Strategy Modes** | `deterministic` \| `advisory` \| `iql_primary` — Gate always final |
+| **Strategy Modes** | `deterministic` \| `advisory` \| `iql_primary` — Gate always final; demo binds CI-pinned IQL |
 | **Ops Dashboard** | Operator UI for replay + mode + projections (`/?view=ops`) |
+| **Closed research↔paper loop** | Paper → transitions → retrain → register → promote → bind real weights |
+| **Read-only observe (L1)** | Allowlisted StockX-shaped observations — **no order send** |
 | **Offline research stack** | Episodes, fee-once rewards, transitions, evaluation/OPE, registry, shadow/advisory recommender |
 
 ### Out of scope
 
-- Live StockX / GOAT / marketplace execution or credentialed bots  
+- Live StockX / GOAT / marketplace **order** execution or credentialed bots  
 - Bypassing marketplace protections, CAPTCHA, or anti-bot tooling  
 - Ungated model trading (model never overrides the Deterministic Gate)  
-- PFHedge as a **paper Strategy Mode** (research comparison only this slice)  
+- PFHedge as a **paper Strategy Mode** (deferred — ADR-0005; research comparison only)  
 - Discord/Slack alerts, Prometheus/Grafana as ship requirements  
-- Multi-quantity tickets driven by model “allocation”
+- Multi-quantity tickets driven by model “allocation”  
+- Shadow would-quote / kill-switch / live-send (L2–L4; gated on ADR-0004)
 
 ---
 
-## 3. Shipped paper path vs under research
+## 3. Closed loop (shipped) vs still gated
 
 ```mermaid
 flowchart TB
-  subgraph shipped [Shipped — Paper Ops]
+  subgraph paper [Paper Ops — shipped]
     G[Golden replay]
     S[Strategy Mode]
     Q[Quote Intents]
     Gate[Deterministic Gate]
     Book[Orders / Fills / Lots / Capital]
-    G --> S --> Q --> Gate --> Book
+    Exp[export-from-run transitions]
+    G --> S --> Q --> Gate --> Book --> Exp
   end
-  subgraph research [Under research]
-    Ep[Episodes / transitions]
-    IQL[Distributional IQL train + eval]
-    PF[PFHedge baseline compare]
-    Reg[Registry + qualification]
-    Ep --> IQL
-    Ep --> PF
-    IQL --> Reg
-    PF --> Reg
+  subgraph research [Research — shipped]
+    Mix[Mixed paper + historical manifest]
+    IQL[Offline IQL train]
+    Har[Harness / OPE]
+    Reg[Registry register + promote]
+    Mix --> IQL --> Har --> Reg
   end
-  Reg -.->|qualified model may bind into Strategy Modes| S
+  Exp --> Mix
+  Reg -->|bind-model CI-pinned or checkpoint| S
+  subgraph live [Live readiness]
+    L1[L1 observe port ✅]
+    L2[L2 shadow — next]
+    L1 -.-> L2
+  end
 ```
 
 | Lane | What you do with it |
 |------|---------------------|
-| **Shipped paper** | Load golden replay in Ops, tick, see orders/fills/P&L; optionally run qualified IQL under Strategy Mode |
-| **Research** | Build datasets, train/compare policies, promote models through registry states; Guided Demo and `/?view=research` show comparison stories |
+| **Paper Ops** | Load golden replay, promote/bind IQL, tick under Strategy Mode; export transitions |
+| **Research** | Mix datasets, train/compare, register artifacts; PFHedge stays comparison-only (ADR-0005) |
+| **Live readiness** | L1 read-only observe fixture port; **no send** until L3/ADR-0004 + L4 |
 
-**PFHedge (contrast):** independent hedging baseline used on the **research**
-comparison track. It is **not** a paper Strategy Mode in the Model-Integrated
-Paper Slice. See the research walkthrough for how it is scored vs IQL.
+**PFHedge:** research comparison baseline only — not a paper Strategy Mode
+([ADR-0005](adr/0005-pfhedge-paper-mode-deferred.md)).
 
 ---
 

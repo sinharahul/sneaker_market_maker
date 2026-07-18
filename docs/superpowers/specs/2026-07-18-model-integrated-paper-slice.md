@@ -1,10 +1,11 @@
 # Model-Integrated Paper Slice — Research/IQL in the quote loop
 
 **Date:** 2026-07-18  
-**Status:** ready-for-agent  
+**Status:** shipped (R0 / Model-Integrated Paper Slice)  
 **Glossary:** `CONTEXT.md`  
 **ADRs:** `docs/adr/0001-golden-historical-replay-for-v1.md`, `docs/adr/0002-deterministic-first-paper-mm.md`, `docs/adr/0003-iql-strategy-modes-gate-final.md`  
 **Depends on:** First Shippable Slice (Continuous Paper Market-Maker Ops + golden replay)  
+**Follow-on:** Dual-track roadmap closes R1–R4 + L1 — see `docs/ROADMAP.md`  
 **Parent design:** `docs/superpowers/specs/2026-07-17-market-maker-dashboard-design.md` (scoped to Strategy Modes + IQL; not full §11)
 
 ## Problem Statement

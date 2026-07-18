@@ -1,20 +1,20 @@
 # Dual-Track Roadmap — Research↔Paper Loop + Live Readiness
 
 **Date:** 2026-07-18  
-**Status:** ready-for-agent  
+**Status:** Track R **complete** (R0–R4); L1 **shipped**; L2–L5 open — living progress in `docs/ROADMAP.md`  
 **Glossary:** `CONTEXT.md`  
-**ADRs:** `docs/adr/0001-golden-historical-replay-for-v1.md`, `docs/adr/0002-deterministic-first-paper-mm.md`, `docs/adr/0003-iql-strategy-modes-gate-final.md`  
+**ADRs:** `docs/adr/0001-golden-historical-replay-for-v1.md`, `docs/adr/0002-deterministic-first-paper-mm.md`, `docs/adr/0003-iql-strategy-modes-gate-final.md`, `docs/adr/0005-pfhedge-paper-mode-deferred.md`  
 **Living roadmap:** `docs/ROADMAP.md`  
 **Depends on:** First Shippable Slice + Model-Integrated Paper Slice (R0 done)  
 **Parent design:** `docs/superpowers/specs/2026-07-17-market-maker-dashboard-design.md` (scoped to research loop + live readiness; not full §11)
 
 ## Problem Statement
 
-Paper Ops and research already both ship: Continuous Paper Market-Maker can run Strategy Modes under the Deterministic Gate, and distributional IQL can train/compare offline. They are still weakly closed: paper fills do not reliably become trainable transitions that retrain and re-bind **real** registry artifacts into Ops (stubs often prove the wire). Separately, moving toward real trading without a gated readiness track risks either never preparing for live data or jumping to live-send without ADR-level safety. Without this dual-track roadmap, the project cannot systematically improve risk-adjusted paper NAV from its own paper experience, nor rehearse live observation without implying order send.
+Paper Ops and research both shipped Strategy Modes and offline IQL, but the loop was weakly closed: paper experience did not reliably become training data that retrained and re-bound **real** registry artifacts into Ops. Separately, live readiness needed a gated track so observe/rehearse work could proceed without implying order send. This dual-track roadmap closed that gap.
 
 ## Solution
 
-Execute two parallel tracks. **Track R** closes the research↔paper loop: paper → OfflineTransition plumbing → offline retrain/evaluate → registry qualify → bind real artifacts into Strategy Modes (promotion UX later; optional PFHedge paper mode later). **Track L** builds live **readiness** in parallel (read-only market data, shadow “would quote” logs, kill-switch + runbooks) but **forbids live-send** until Track R paper-loop exit criteria are met and **ADR-0004** (live adapter + Gate-final + no protection bypass + kill-switch) is accepted. Milestone phases use exit criteria and candidate work items; calendar dates are omitted. Hard invariants stay: Decimal money, Deterministic Gate final, Product-Family Allowlist, no anti-bot bypass.
+Execute two parallel tracks. **Track R** (now complete) closes the research↔paper loop: paper → OfflineTransition plumbing → offline retrain/evaluate → registry qualify/promote → bind real artifacts into Strategy Modes (PFHedge paper mode deferred — ADR-0005). **Track L** builds live **readiness** in parallel (L1 read-only observe shipped; next shadow “would quote”, kill-switch + runbooks) but **forbids live-send** until Track R paper-loop exit criteria are met and **ADR-0004** (live adapter + Gate-final + no protection bypass + kill-switch) is accepted. Milestone phases use exit criteria and candidate work items; calendar dates are omitted. Hard invariants stay: Decimal money, Deterministic Gate final, Product-Family Allowlist, no anti-bot bypass.
 
 ## User Stories
 
@@ -81,15 +81,15 @@ Execute two parallel tracks. **Track R** closes the research↔paper loop: paper
   - **Track L:** Observe-only market-data port + shadow “would quote” log; **no** order-send API until ADR-0004 and L4.
 - **Living doc:** `docs/ROADMAP.md` holds phases, exit criteria, and candidate work items; this file is the agent-ready PRD.
 - **Phase style:** Milestone phases with exit criteria; no calendar dates; sprint-sized candidates are illustrative until `/to-tickets`.
-- **Track R sequence:** R0 done → R1 paper→transition → R2 retrain/eval/register → R3 real artifact bind in Ops → R4 promotion UX + optional PFHedge paper mode.
-- **Track L sequence:** L1 read-only port → L2 shadow would-quote → L3 kill-switch/runbooks/ADR-0004 → L4 tiny human-gated live-send (gated on R proof) → L5 expand carefully.
-- **Live-send gate:** Forbidden until (1) Track R exit for R1–R3, (2) ADR-0004 accepted, (3) human enable default-off.
-- **ADR-0004:** Deferred until live-send is contemplated; roadmap states the requirement (adapter + Gate-final + no protection bypass + kill-switch).
-- **Reuse:** Existing FeeSchedule/Decimal, OfflineTransition/RewardBuilder patterns, RegistryService states, Strategy Modes, Action Translator, Inference Latency Budget, Deterministic Gate — do not invent a second promotion or gate system.
-- **Stubs:** Allowed in tests and as injectable ports; R3 happy path must bind real registry artifacts.
-- **PFHedge:** Not a paper Strategy Mode until R4 decision/ADR; remains research comparison until then.
-- **Allowlist:** Jordan 1 Retro + Nike Dunk Low unless an explicit later expansion.
-- **Safety:** Offline/network deny posture for paper/research unchanged; live readiness must not introduce send clients before L4.
+- **Track R sequence:** R0–R4 **done** (paper→transition → retrain → bind → promote; PFHedge deferred ADR-0005).  
+- **Track L sequence:** L1 read-only port **done** → L2 shadow would-quote → L3 kill-switch/runbooks/ADR-0004 → L4 tiny human-gated live-send (gated on R proof) → L5 expand carefully.  
+- **Live-send gate:** Forbidden until (1) Track R exit for R1–R3 (**met**), (2) ADR-0004 accepted, (3) human enable default-off.  
+- **ADR-0004:** Still deferred until live-send is contemplated; roadmap states the requirement (adapter + Gate-final + no protection bypass + kill-switch).  
+- **Reuse:** Existing FeeSchedule/Decimal, OfflineTransition/RewardBuilder patterns, RegistryService states, Strategy Modes, Action Translator, Inference Latency Budget, Deterministic Gate — do not invent a second promotion or gate system.  
+- **Stubs:** Allowed in tests and as injectable ports; R3 happy path binds real / CI-pinned registry artifacts.  
+- **PFHedge:** Not a paper Strategy Mode — **deferred** ([ADR-0005](../../adr/0005-pfhedge-paper-mode-deferred.md)); remains research comparison.  
+- **Allowlist:** Jordan 1 Retro + Nike Dunk Low unless an explicit later expansion.  
+- **Safety:** Offline/network deny posture for paper/research unchanged; live readiness must not introduce send clients before L4.  
 - **Links:** MASTER.md and README point at `docs/ROADMAP.md` and this spec.
 
 ## Testing Decisions

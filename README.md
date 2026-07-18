@@ -19,13 +19,19 @@ live orders.
 | Local UI | Guided 5-minute demo + research comparison page + Ops Dashboard |
 
 Python **3.10–3.12**. Docs: **[master overview](docs/MASTER.md)** (start here),
-[roadmap](docs/ROADMAP.md),
+[roadmap](docs/ROADMAP.md) (Track R ✅ · L1 ✅ · next L2),
 [Paper Ops](docs/paper-ops/README.md),
+[bind/qualify runbook](docs/paper-ops/bind-qualify-runbook.md),
+[observe-only L1](docs/observe/README.md),
 [research junior walkthrough](docs/research/junior-walkthrough.md),
 [senior architect walkthrough](docs/research/senior-architect-walkthrough.md),
 [exercise research pipeline](docs/research/exercise-pipeline.md),
 [quantitative context](docs/research/QUANTITATIVE_CONTEXT.md),
 [acceptance checklist](docs/research/acceptance-checklist.md).
+
+**Progress:** The research↔paper loop is closed (paper → transitions → offline IQL
+→ registry promote → Ops bind with CI-pinned weights). Live readiness has a
+read-only observe port (L1); **live-send remains forbidden** until ADR-0004.
 
 ---
 

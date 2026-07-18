@@ -29,6 +29,10 @@ Money fields are **Decimal strings** in projections — not floats.
 | `strategy_mode` | `deterministic` \| `advisory` \| `iql_primary` |
 | `registry.model_id` | Bound research model id (or null) |
 | `registry.state` | Registry state used for Model Qualification (or null) |
+| `registry.artifact_hash` | Bound checkpoint hash when lineage present |
+| `registry.encoder_version` / `state_schema_version` / `action_translator_version` | Compatibility lineage (null if unbound/stub) |
+| `registry.unlocked_modes` | Strategy Modes the current registry state authorizes |
+| `last_promote` | Last successful promote (`actor`, `reason`, `source`, `target`) or null |
 | `inference_latency_budget_ms` | Pinned Inference Latency Budget |
 | `pause_reason` | `null` \| `operator` \| `iql_unavailable` |
 | `fallback_reason` | Advisory tick fallback code (e.g. `timeout`); null if none |
@@ -68,6 +72,11 @@ Money fields are **Decimal strings** in projections — not floats.
 | `inference.budget_set` | Latency budget pinned (`limit_ms`) |
 | `inference.budget_rejected` | Invalid budget (e.g. above ceiling) |
 | `strategy.advisory_fallback` | Advisory used deterministic base (`reason`) |
+| `strategy.model_bound` | Real/CI checkpoint bound (lineage fields) |
+| `strategy.bind_rejected` | Fail-closed bind (schema/encoder mismatch, …) |
+| `strategy.model_promoted` | Registry promote succeeded (`actor`, `reason`, `source`, `target`) |
+| `strategy.promote_rejected` | Illegal or incomplete promote |
+| `transitions.exported` | Paper checkpoints exported to OfflineTransitions |
 
 ---
 
@@ -123,3 +132,6 @@ Money fields are **Decimal strings** in projections — not floats.
 - `tests/api/test_paper_ops_strategy_modes.py` — advisory / iql_primary / pause / recover
 - `tests/api/test_paper_ops_set_mode_budget.py` — mode/budget idempotency + reject
 - `tests/api/test_paper_ops_deterministic_mode.py` — deterministic never calls IQL
+- `tests/api/test_paper_ops_r3_bind.py` — CI-pinned real artifact bind / Gate
+- `tests/api/test_paper_ops_r4_promote.py` — promote path + qty-one regression
+- `tests/observe/` + `tests/safety/test_observe_no_send.py` — L1 observe (no send)

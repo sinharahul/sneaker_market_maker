@@ -5,11 +5,13 @@ Inventory Lots, and Paper Capital under **Strategy Mode**, with the
 **Deterministic Gate** always final.
 
 **Audience:** new contributors.  
-**Canonical scenario:** Golden Historical Replay Dataset `golden_v1`, then stub
-IQL for `advisory` / `iql_primary` (same seam as control-plane acceptance tests).  
+**Canonical scenario:** Golden Historical Replay Dataset `golden_v1`. Local demo /
+acceptance can use the **CI-pinned IQL** artifact for `advisory` / `iql_primary`
+(stubs remain injectable for unit tests only).  
 **Glossary:** [`CONTEXT.md`](../../CONTEXT.md).  
 **Siblings:** [operator cheat sheet](./operator-cheat-sheet.md),
-[auditor reconstructibility](./auditor-reconstructibility.md).
+[auditor reconstructibility](./auditor-reconstructibility.md),
+[bind/qualify runbook](./bind-qualify-runbook.md).
 
 This is **not** the Guided Demo (fixture story at `/?`) and **not** the research
 comparison page (`/?view=research`).
@@ -90,7 +92,7 @@ flowchart TD
 
 ---
 
-## Strategy Mode branches (stub IQL)
+## Strategy Mode branches (real or CI-pinned IQL)
 
 ### `advisory` (needs registry `advisory_approved`)
 
@@ -112,7 +114,8 @@ flowchart TD
 ### Model Qualification
 
 Unqualified `set-mode` fails closed: mode unchanged, `strategy.mode_rejected`.
-`deterministic` is always allowed.
+`deterministic` is always allowed. Local demo pre-binds CI-pinned weights as
+`advisory_approved` — see [bind-qualify-runbook.md](./bind-qualify-runbook.md).
 
 ---
 
@@ -122,10 +125,10 @@ Unqualified `set-mode` fails closed: mode unchanged, `strategy.mode_rejected`.
 |-------|-----------|
 | Ops REST + WS | `api/paper_routes.py`, `api/paper_events.py`, `api/local_demo.py` |
 | Session / tick orchestration | `paper/session.py` |
-| Mode + latency budget + bind model | `paper/ops_mode.py`, `paper/strategy_mode.py` |
+| Mode + latency budget + bind / promote | `paper/ops_mode.py`, `paper/strategy_mode.py`, `paper/artifact_bind.py`, `paper/promote.py` |
 | Replay clock + golden load | `paper/replay/simulator.py`, `paper/replay/loader.py` |
 | Paper Decision State | `paper/decision_state.py` |
-| IQL inference port + budget | `paper/inference.py` |
+| IQL inference port + budget | `paper/inference.py` (production: `CheckpointIqlInference`) |
 | Mode authorship / nudge / fallback / pause signal | `paper/mode_path.py` |
 | Action Translator | `paper/action_translator.py` |
 | Deterministic desired quotes + reconcile | `paper/quote_engine.py` |
@@ -135,19 +138,22 @@ Unqualified `set-mode` fails closed: mode unchanged, `strategy.mode_rejected`.
 | Paper Capital | `paper/capital.py` |
 | Read models | `paper/projections.py` |
 | Allowlist | `paper/allowlist.py` |
+| Paper → transition export | `paper/export_transitions.py`, `paper/step_effects.py`, … |
 | Store / audit persistence | `persistence/paper_*.py` |
 | Ops UI | `frontend/src/ops/*` |
 
 Acceptance seams: `tests/api/test_paper_ops_api.py`,
 `tests/api/test_paper_ops_strategy_modes.py`,
-`tests/api/test_paper_ops_deterministic_mode.py`.
+`tests/api/test_paper_ops_deterministic_mode.py`,
+`tests/api/test_paper_ops_r3_bind.py`,
+`tests/api/test_paper_ops_r4_promote.py`.
 
 ---
 
 ## What this flow deliberately excludes
 
 - Guided Demo / research comparison as paper authority
-- PFHedge as a paper Strategy Mode
-- Live marketplace adapters
+- PFHedge as a paper Strategy Mode (ADR-0005)
+- Live marketplace order adapters (L1 observe is separate — [`../observe/`](../observe/README.md))
 - Ungated model trading / Gate override
 - Multi-quantity Paper Orders from IQL allocation

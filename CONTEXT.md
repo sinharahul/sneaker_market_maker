@@ -57,11 +57,19 @@ The Continuous Paper Market-Maker vertical that shipped first: Golden Historical
 _Avoid_: Treating First Shippable Slice as including IQL trading
 
 **Model-Integrated Paper Slice**:
-The next vertical after First Shippable Slice: wire Research/IQL into the paper quote loop under Strategy Mode (deterministic | advisory | iql_primary), still Deterministic-Gate-final, with Ops controls to select mode. Shadow-only observation is out of scope for this slice’s primary outcome. Entering **advisory** requires registry state `advisory_approved`; entering **iql_primary** requires at least `benchmark_qualified`. PFHedge is not a paper Strategy Mode in this slice.
-_Avoid_: Live marketplace, ungated model trading, PFHedge-authored paper quotes, research comparison page as a substitute for Ops mode control
+The vertical that wired Research/IQL into the paper quote loop under Strategy Mode (deterministic | advisory | iql_primary), still Deterministic-Gate-final, with Ops controls to select mode. **Shipped (R0).** Later dual-track work closed promote/bind with real artifacts (R3–R4). Entering **advisory** requires registry state `advisory_approved`; entering **iql_primary** requires at least `benchmark_qualified`. PFHedge is not a paper Strategy Mode (ADR-0005).
+_Avoid_: Live marketplace orders, ungated model trading, PFHedge-authored paper quotes, research comparison page as a substitute for Ops mode control
+
+**Research↔Paper Loop**:
+The closed path from Continuous Paper Market-Maker experience to improved models: paper step effects → OfflineTransition export → mixed offline IQL retrain → registry register/promote → Ops `bind-model` of real weights. Track R (R1–R4) on `docs/ROADMAP.md`.
+_Avoid_: Stub-only happy path as production proof, training on quarantined rows
+
+**Read-Only Market Observation (L1)**:
+Allowlisted StockX-shaped market snapshots from the observe port (`sneaker_market_maker.observe`) with no order credentials and no send client. Prep for live readiness; not paper capital mutation and not live-send.
+_Avoid_: Live order adapter, treating observe as execution authority
 
 **Model Qualification**:
-The research registry progression that authorizes Strategy Modes which touch IQL: a model must reach `benchmark_qualified` before Ops may select `iql_primary`, and `advisory_approved` before Ops may select `advisory`. Deterministic mode needs no model qualification.
+The research registry progression that authorizes Strategy Modes which touch IQL: a model must reach `benchmark_qualified` before Ops may select `iql_primary`, and `advisory_approved` before Ops may select `advisory`. Deterministic mode needs no model qualification. Ops can advance legal edges via `promote-model` when a `RegistryService` is attached.
 _Avoid_: Ad-hoc checkpoint without registry, operator override that skips qualification, a second parallel promotion system
 
 **Action Translator**:

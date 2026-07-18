@@ -1,8 +1,10 @@
 # Observe-only market data (Track L1)
 
 **Audience:** operators / developers starting live readiness  
+**Status:** **shipped** (2026-07-18)  
 **Scope:** read-only StockX-shaped observations  
-**Not in scope:** shadow would-quote (L2), kill-switch / ADR-0004 (L3), live-send (L4)
+**Not in scope:** shadow would-quote (L2), kill-switch / ADR-0004 (L3), live-send (L4)  
+**Roadmap:** [`../ROADMAP.md`](../ROADMAP.md)
 
 ## What L1 is
 

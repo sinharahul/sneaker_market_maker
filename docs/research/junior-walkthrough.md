@@ -10,9 +10,12 @@ layers where they appear — especially [Layer 0](#layer-0--legacy-analytics-cor
 and [Layer 6](#layer-6--two-different-smart-policies).
 
 **What this product is:** an offline research stack for a sneaker market-making paper
-trader. It builds training data from historical/synthetic replay, trains and compares
-policies (deterministic rules, PFHedge baseline, custom IQL), and may *recommend*
-actions — but **deterministic risk gates always decide** what the paper trader does.
+trader. It builds training data from historical/synthetic (and now **paper-exported**)
+replay, trains and compares policies (deterministic rules, PFHedge baseline, custom
+IQL), and may *recommend* actions — but **deterministic risk gates always decide**
+what the paper trader does. The research↔paper loop is **closed** on the living
+roadmap (`docs/ROADMAP.md`: R0–R4 done). PFHedge stays research-comparison only
+(ADR-0005). Live-send is still out of scope.
 
 **What this product is not:** a live StockX/GOAT bot, a Cloudflare bypass, or an
 auto-approved trading agent.
