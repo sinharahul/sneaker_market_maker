@@ -33,12 +33,48 @@ The Version 1 quoting posture: maintain a deterministic desired bid when quoting
 _Avoid_: Always-both-sides, bid-only strategy, ask-only strategy
 
 **Deterministic Gate**:
-The mandatory final authority on every paper place, revise, cancel, or replace. Model output may be compared in shadow or proposed as advisory later, but never approves orders or overrides this gate.
+The mandatory final authority on every paper place, revise, cancel, or replace. IQL may author or nudge Quote Intents under Strategy Mode, but never approves orders or overrides this gate.
 _Avoid_: Model approval, soft risk check, optional gate
 
 **Deterministic Strategy**:
-The Version 1 quote logic that produces desired bid/ask intents from market, inventory, capital, and fees without model influence. The first Continuous Paper Market-Maker shippable slice runs on this alone.
-_Avoid_: Advisory strategy, model-driven quoting (later slices only)
+The quote logic that produces desired bid/ask intents from market, inventory, capital, and fees without model influence. One of the operator-selectable Strategy Modes; always available as the fail-closed baseline.
+_Avoid_: The only forever strategy, model-driven quoting (see Strategy Mode)
+
+**Strategy Mode**:
+The operator-selected quote brain for the Continuous Paper Market-Maker. Exactly one mode is active at a time: **deterministic** (Deterministic Strategy only), **advisory** (Deterministic Strategy base plus bounded IQL nudge), or **iql_primary** (IQL proposes intents). In every mode the Deterministic Gate remains the final authority on Paper Orders.
+_Avoid_: Shadow-only observation as a Strategy Mode, stacking multiple quote brains on one tick, model override of the Gate
+
+**Advisory Mode**:
+Strategy Mode where the Deterministic Strategy proposes the base quote and a qualified IQL recommendation may apply a bounded skew/allocation nudge before the Deterministic Gate. If the recommendation is missing, late, or invalid, behavior falls back to the deterministic base.
+_Avoid_: Unbounded model control, gate bypass, silent model authority
+
+**IQL-Primary Mode**:
+Strategy Mode where IQL proposes Quote Intents (mapped into the paper intent vocabulary) and the Deterministic Gate still accepts or rejects them. If IQL cannot produce a valid proposal (missing, late, or invalid), the StockX Historical Replay clock **pauses** until IQL is healthy again — quoting does not silently substitute Deterministic Strategy while the mode remains `iql_primary`.
+_Avoid_: Ungated model execution, silent deterministic substitute while claiming IQL-primary, replacing the Gate
+
+**First Shippable Slice**:
+The Continuous Paper Market-Maker vertical that shipped first: Golden Historical Replay Dataset → Deterministic Strategy → Quote Intents → Deterministic Gate → Paper Orders → Fee-Aware Fills → Inventory Lots → Paper Capital/P&L → Authoritative Store → thin Ops Dashboard. Explicitly excluded model Strategy Modes, Discord/Slack alerts, Prometheus/Grafana, live marketplace adapters, and Synthetic Scenario as execution evidence.
+_Avoid_: Treating First Shippable Slice as including IQL trading
+
+**Model-Integrated Paper Slice**:
+The next vertical after First Shippable Slice: wire Research/IQL into the paper quote loop under Strategy Mode (deterministic | advisory | iql_primary), still Deterministic-Gate-final, with Ops controls to select mode. Shadow-only observation is out of scope for this slice’s primary outcome. Entering **advisory** requires registry state `advisory_approved`; entering **iql_primary** requires at least `benchmark_qualified`. PFHedge is not a paper Strategy Mode in this slice.
+_Avoid_: Live marketplace, ungated model trading, PFHedge-authored paper quotes, research comparison page as a substitute for Ops mode control
+
+**Model Qualification**:
+The research registry progression that authorizes Strategy Modes which touch IQL: a model must reach `benchmark_qualified` before Ops may select `iql_primary`, and `advisory_approved` before Ops may select `advisory`. Deterministic mode needs no model qualification.
+_Avoid_: Ad-hoc checkpoint without registry, operator override that skips qualification, a second parallel promotion system
+
+**Action Translator**:
+The versioned bridge from research `HybridAction` (category, ticks, allocation) to paper Quote Intents. For this slice: `QUOTE` maps touch ± (ticks × pinned tick_size) at quantity one; `CANCEL` cancels actives; `NO_OP` emits no new intents; allocation does not change size. Translator version and tick_size are pinned on the paper run.
+_Avoid_: Multi-quantity paper from allocation, ad-hoc unversioned mapping, rewriting Paper Order semantics in this slice
+
+**Paper Decision State**:
+The research-compatible decision state built from the live paper book and current market event, then encoded with the registry-pinned encoder for IQL. Tests may inject a stub inference implementation behind the same port; they must not bypass Strategy Mode or the Deterministic Gate.
+_Avoid_: Feeding raw Paper Order rows into the network, unversioned ad-hoc vectors, a second inference API that skips Mode Qualification
+
+**Inference Latency Budget**:
+The maximum wall-clock time allowed for IQL inference on a paper tick, pinned on the paper run (default 100ms, ceiling 250ms). Exceeding the budget counts as late/invalid: in `iql_primary` that pauses replay; in `advisory` that falls back to the deterministic base for that tick.
+_Avoid_: Unlimited wait, unbounded operator-raised timeouts, treating slow success as healthy IQL-primary
 
 **Paper Order**:
 A simulated marketplace order for exactly one physical pair (quantity one). It is accepted, revised, cancelled, or replaced under the Deterministic Gate, and if it fills, it fills once in full — never partially.
@@ -53,11 +89,11 @@ One uniquely identified physical pair tracked through a lifecycle (at minimum pu
 _Avoid_: Share count, virtual units, fungible position
 
 **Ops Dashboard**:
-The Version 1 React control plane for the Continuous Paper Market-Maker: load/start/pause/resume/stop StockX Historical Replay, enable/disable the Deterministic Strategy, and inspect Paper Capital, Paper Orders, fills, Inventory Lots, and P&L. Distinct from the Guided Demo and research comparison pages; model-research and advisory-promotion UI are later slices.
-_Avoid_: Guided demo, research comparison page, full design §11 surface on day one
+The React control plane for the Continuous Paper Market-Maker: replay controls, Strategy Mode selection, and read models for Paper Capital, Paper Orders, fills, Inventory Lots, P&L, and (in the Model-Integrated Paper Slice) mode/audit of IQL influence. Distinct from the Guided Demo and research comparison pages.
+_Avoid_: Guided demo, research comparison page as the paper control plane
 
 **Quote Intent**:
-An explicit place, revise, cancel, or replace instruction from the quote engine after comparing desired Two-Sided Paper Quoting with active Paper Orders. Continuous market-making means these intents keep firing under Deterministic Gate as market and risk state change — not a one-shot place.
+An explicit place, revise, cancel, or replace instruction from the active Strategy Mode after comparing desired Two-Sided Paper Quoting with active Paper Orders. Continuous market-making means these intents keep firing under Deterministic Gate as market and risk state change — not a one-shot place.
 _Avoid_: Set-and-forget quote, implicit book mutation without intent
 
 **Authoritative Store**:
@@ -67,7 +103,3 @@ _Avoid_: Browser-only state, ephemeral process memory as source of truth
 **Fee-Aware Fill**:
 A Paper Order fill that records quoted price, execution price, slippage, fee-schedule version, and total fees, and updates Paper Capital / Inventory Lot cost basis / P&L accordingly. Required in the first shippable Continuous Paper Market-Maker slice.
 _Avoid_: Gross-only fills, fee-free P&L
-
-**First Shippable Slice**:
-The Continuous Paper Market-Maker vertical that ships first: Golden Historical Replay Dataset → Deterministic Strategy → Quote Intents → Deterministic Gate → Paper Orders → Fee-Aware Fills → Inventory Lots → Paper Capital/P&L → Authoritative Store → thin Ops Dashboard. Explicitly excludes model shadow/advisory in the quote loop, model-research/promotion UI, Discord/Slack alerts, Prometheus/Grafana, live marketplace adapters, and Synthetic Scenario as execution evidence.
-_Avoid_: Full design §11 on day one, research-only demo as substitute

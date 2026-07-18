@@ -1,0 +1,3 @@
+# IQL Strategy Modes trade under the Gate; iql_primary pauses on failure
+
+After the First Shippable Slice (deterministic-only), paper trading integrates Research/IQL via operator Strategy Modes (`deterministic` | `advisory` | `iql_primary`). IQL may author or nudge Quote Intents, but the Deterministic Gate remains final. Rejected: shadow-only as the slice outcome, and ungated model trading. In `iql_primary`, missing/late/invalid inference pauses StockX Historical Replay rather than silently substituting Deterministic Strategy (so the active mode stays honest). Advisory falls back to the deterministic base for that tick. Mode entry is gated by Model Qualification (`benchmark_qualified` / `advisory_approved`). PFHedge stays off the paper quote path in this slice.
