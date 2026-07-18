@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from sneaker_market_maker.paper.strategy_mode import StrategyMode, StrategyModeMachine
+from sneaker_market_maker.research.registry.service import RegistryState
 
 
 def test_default_mode_is_deterministic() -> None:
@@ -12,9 +13,21 @@ def test_default_mode_is_deterministic() -> None:
 
 def test_exactly_one_mode_active_and_audited_on_change() -> None:
     machine = StrategyModeMachine()
-    assert machine.set_mode(StrategyMode.ADVISORY) is True
+    assert (
+        machine.set_mode(
+            StrategyMode.ADVISORY,
+            registry_state=RegistryState.ADVISORY_APPROVED,
+        )
+        is True
+    )
     assert machine.mode is StrategyMode.ADVISORY
-    assert machine.set_mode(StrategyMode.IQL_PRIMARY) is True
+    assert (
+        machine.set_mode(
+            StrategyMode.IQL_PRIMARY,
+            registry_state=RegistryState.BENCHMARK_QUALIFIED,
+        )
+        is True
+    )
     assert machine.mode is StrategyMode.IQL_PRIMARY
     assert [entry.to_mode for entry in machine.audit] == [
         StrategyMode.ADVISORY,

@@ -4,9 +4,9 @@
 
 **Blocked by:** 05 — Strategy Mode state machine (session)
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Unqualified `advisory` / `iql_primary` selection is refused without changing mode
-- [ ] `deterministic` is always selectable
-- [ ] Qualification uses research registry states (no parallel promotion store)
-- [ ] Tests cover refuse/accept matrices for registry states
+- [x] Unqualified `advisory` / `iql_primary` selection is refused without changing mode
+- [x] `deterministic` is always selectable
+- [x] Qualification uses research registry states (no parallel promotion store)
+- [x] Tests cover refuse/accept matrices for registry states
