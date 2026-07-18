@@ -4,8 +4,8 @@
 
 **Blocked by:** None — can start immediately.
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Builder produces a research-compatible decision state from paper capital, lots, orders, and market event
-- [ ] Missing required fields fail closed with a stable error
-- [ ] Unit tests cover happy path and fail-closed gaps
+- [x] Builder produces a research-compatible decision state from paper capital, lots, orders, and market event
+- [x] Missing required fields fail closed with a stable error
+- [x] Unit tests cover happy path and fail-closed gaps
