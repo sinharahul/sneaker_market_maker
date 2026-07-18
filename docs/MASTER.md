@@ -1,12 +1,13 @@
 # Master overview — Sneaker Market Maker
 
-**Start here.** Plain-language map of what market making is, what this repo
-ships, what stays under research, and how IQL fits — with concrete trade and
-action examples.
+**Start here.** This repo is a **sneaker market-making system** (StockX-first):
+continuous two-sided quoting, fee-aware risk, offline policy learning, and a
+gated path from paper execution toward live readiness. Paper trading is the
+**current safe execution and training loop** — not the whole product scope.
 
 **Progress (2026-07-18):** Research↔paper loop **closed** (R0–R4). Live readiness
-**L1** (read-only observe) shipped. Next: L2 shadow → L3 ADR-0004 — **no live-send yet**.  
-See [`ROADMAP.md`](ROADMAP.md).
+**L1** (read-only observe) shipped. Next: L2 shadow → L3 ADR-0004 — **live order
+send still off**. See [`ROADMAP.md`](ROADMAP.md).
 
 **Glossary (canonical terms):** [`CONTEXT.md`](../CONTEXT.md)  
 **Paper Ops (tick → fill):** [`docs/paper-ops/`](paper-ops/README.md)  
@@ -27,43 +28,51 @@ and **fees** so they are not stuck holding losing stock.
 
 On a sneaker secondary marketplace (StockX-shaped), “quotes” are offers against
 observed **highest bid** / **lowest ask** for a specific product (style, size).
-A continuous market maker keeps revising those paper quotes as the book moves —
+A continuous market maker keeps revising those quotes as the book moves —
 not a one-shot “place and forget.”
 
-In this project that posture is **Two-Sided Paper Quoting**: keep a healthy bid
-when quoting is on; post an ask only when an **Inventory Lot** is available to
-sell (inventory-backed ask). Flat inventory with no ask is allowed.
+In this project that posture is **Two-Sided Quoting** (paper today; live later
+behind ADR-0004): keep a healthy bid when quoting is on; post an ask only when
+an **Inventory Lot** is available to sell (inventory-backed ask). Flat inventory
+with no ask is allowed.
 
 ---
 
 ## 2. What this project is (and is not)
 
-### In scope (Version 1)
+### Product scope (full system)
 
-| Area | Meaning |
-|------|---------|
-| **Continuous Paper Market-Maker** | Control plane + simulation that quotes under replay, through a **Deterministic Gate**, with Decimal capital / fills / lots |
-| **StockX Historical Replay** | Authoritative market events for paper execution tests — starting with the checked-in **Golden Historical Replay Dataset** |
-| **Product-Family Allowlist** | Jordan 1 Retro and Nike Dunk Low only |
+| Pillar | Meaning |
+|--------|---------|
+| **Market making** | Continuous two-sided quoting under allowlist, capital, fees, and a **Deterministic Gate** that is always final |
+| **Paper execution (shipped)** | Continuous Paper Market-Maker Ops: golden replay → Strategy Modes → Gate → Decimal capital / fills / lots |
+| **Learning loop (shipped)** | Paper/history → OfflineTransitions → offline IQL train/eval → registry promote → bind real weights into Ops |
+| **Live readiness (in progress)** | Read-only observe (L1) → shadow would-quote (L2) → kill-switch + ADR-0004 (L3) → tiny human-gated live-send (L4) |
+
+| Area | Detail |
+|------|--------|
+| **StockX Historical Replay** | Authoritative market events for paper execution proof — golden dataset today |
+| **Product-Family Allowlist** | Jordan 1 Retro and Nike Dunk Low only (expand only via explicit allowlist/ADR) |
 | **Strategy Modes** | `deterministic` \| `advisory` \| `iql_primary` — Gate always final; demo binds CI-pinned IQL |
 | **Ops Dashboard** | Operator UI for replay + mode + projections (`/?view=ops`) |
-| **Closed research↔paper loop** | Paper → transitions → retrain → register → promote → bind real weights |
-| **Read-only observe (L1)** | Allowlisted StockX-shaped observations — **no order send** |
 | **Offline research stack** | Episodes, fee-once rewards, transitions, evaluation/OPE, registry, shadow/advisory recommender |
+| **Read-only observe (L1)** | Allowlisted StockX-shaped observations — **no order send** |
 
-### Out of scope
+### Explicitly not done / not allowed (yet)
 
-- Live StockX / GOAT / marketplace **order** execution or credentialed bots  
+- **Live order send** without ADR-0004 + human enable (default off)  
 - Bypassing marketplace protections, CAPTCHA, or anti-bot tooling  
 - Ungated model trading (model never overrides the Deterministic Gate)  
-- PFHedge as a **paper Strategy Mode** (deferred — ADR-0005; research comparison only)  
+- PFHedge as a **Strategy Mode** on the quote path (deferred — ADR-0005; research comparison only)  
 - Discord/Slack alerts, Prometheus/Grafana as ship requirements  
 - Multi-quantity tickets driven by model “allocation”  
-- Shadow would-quote / kill-switch / live-send (L2–L4; gated on ADR-0004)
+
+Paper is how we **prove and train** market-making behavior safely. The roadmap’s
+live track is how we **rehearse and eventually send** under the same Gate DNA.
 
 ---
 
-## 3. Closed loop (shipped) vs still gated
+## 3. Three pillars: paper execution, learning, live readiness
 
 ```mermaid
 flowchart TB
@@ -85,21 +94,23 @@ flowchart TB
   end
   Exp --> Mix
   Reg -->|bind-model CI-pinned or checkpoint| S
-  subgraph live [Live readiness]
+  subgraph live [Live readiness — in progress]
     L1[L1 observe port ✅]
     L2[L2 shadow — next]
-    L1 -.-> L2
+    L3[L3 ADR-0004 / kill-switch]
+    L4[L4 gated live-send]
+    L1 -.-> L2 -.-> L3 -.-> L4
   end
 ```
 
-| Lane | What you do with it |
-|------|---------------------|
-| **Paper Ops** | Load golden replay, promote/bind IQL, tick under Strategy Mode; export transitions |
-| **Research** | Mix datasets, train/compare, register artifacts; PFHedge stays comparison-only (ADR-0005) |
-| **Live readiness** | L1 read-only observe fixture port; **no send** until L3/ADR-0004 + L4 |
+| Pillar | What you do with it |
+|--------|---------------------|
+| **Paper Ops** | Run continuous market-making under replay; promote/bind IQL; export transitions |
+| **Research** | Train/compare policies; register artifacts; PFHedge stays comparison-only (ADR-0005) |
+| **Live readiness** | Observe allowlisted books (L1); rehearse then send only after ADR-0004 |
 
-**PFHedge:** research comparison baseline only — not a paper Strategy Mode
-([ADR-0005](adr/0005-pfhedge-paper-mode-deferred.md)).
+**PFHedge:** research comparison baseline only — not a Strategy Mode on the quote
+path ([ADR-0005](adr/0005-pfhedge-paper-mode-deferred.md)).
 
 ---
 

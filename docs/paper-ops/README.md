@@ -1,13 +1,15 @@
 # Continuous Paper Market-Maker — Ops docs
 
-End-to-end documentation for the **Continuous Paper Market-Maker** control plane
-(Ops Dashboard + `/api/paper`). This is **not** the Guided Demo and **not** the
+End-to-end documentation for the **paper execution** control plane of the sneaker
+market-making system (Ops Dashboard + `/api/paper`). This is the safe continuous
+quoting loop under replay — not the whole product (see research + live readiness
+on [`ROADMAP`](../ROADMAP.md)). This is **not** the Guided Demo and **not** the
 research comparison page.
 
 **Progress:** Local demo binds the **CI-pinned IQL** artifact for `advisory` /
 `iql_primary`. Promote via `promote-model`; bind via `bind-model`. See
 [bind-qualify-runbook.md](./bind-qualify-runbook.md). Research↔paper loop (R1–R4)
-is closed; live-send is still out of scope ([ROADMAP](../ROADMAP.md)).
+is closed; **live order send** remains gated on ADR-0004.
 
 **Glossary:** [`CONTEXT.md`](../../CONTEXT.md)  
 **ADRs:** [`0001`](../adr/0001-golden-historical-replay-for-v1.md),

@@ -1,22 +1,31 @@
 # Sneaker Market Maker
 
-Fee-aware analytics and an **offline** research stack for sneaker secondary-market
-paper trading (StockX-first). The system normalizes marketplace-shaped
-observations, prices transaction friction in `Decimal`, rejects trades that
-violate risk limits, builds Bellman-ready transitions, and compares policies
-(deterministic / heuristic / MLP / **PFHedge** baseline / **distributional IQL**).
+A **StockX-first sneaker market-making system**: continuous two-sided quoting,
+fee-aware risk, offline policy learning (distributional IQL + PFHedge baselines),
+and a gated path toward live readiness.
 
-Recommendations are gated by deterministic risk rules. **Shadow** mode never
-changes the paper command stream; **advisory** requires explicit human
-qualification. This project does **not** bypass marketplace protections or place
-live orders.
+**What ships today**
+
+| Pillar | Role |
+|--------|------|
+| **Continuous Paper Market-Maker** | Ops control plane: golden replay → Strategy Modes → Deterministic Gate → Decimal capital / fills / lots |
+| **Offline research** | Episodes → fee-once rewards → transitions → train/eval/OPE → registry promote → bind real weights back into Ops |
+| **Live readiness** | Read-only allowlisted market observe (L1); shadow / kill-switch / live-send planned behind ADR-0004 |
+
+The product goal is **market making on sneaker secondary markets** — improve
+risk-adjusted NAV under fees, inventory, and capital. Paper is the current
+execution and training loop, not the end of the roadmap. Recommendations are
+always Gate-final. The project does **not** bypass marketplace protections;
+**live order send is disabled** until ADR-0004 and human enablement.
 
 | Layer | What it does |
 |-------|----------------|
 | Analytics core | `FeeSchedule`, `OpportunityEvaluator`, GBM stress paths |
+| Paper Ops | Replay, Strategy Modes, Gate, capital / lots / fills, promote / bind |
 | Research | Episodes → rewards → transitions → IQL / PFHedge → evaluation / OPE |
 | Governance | Registry, qualification, shadow/advisory recommender |
-| Local UI | Guided 5-minute demo + research comparison page + Ops Dashboard |
+| Live readiness | Observe-only port (L1); no send client |
+| Local UI | Guided demo + research comparison + Ops Dashboard |
 
 Python **3.10–3.12**. Docs: **[master overview](docs/MASTER.md)** (start here),
 [roadmap](docs/ROADMAP.md) (Track R ✅ · L1 ✅ · next L2),
@@ -29,9 +38,8 @@ Python **3.10–3.12**. Docs: **[master overview](docs/MASTER.md)** (start here)
 [quantitative context](docs/research/QUANTITATIVE_CONTEXT.md),
 [acceptance checklist](docs/research/acceptance-checklist.md).
 
-**Progress:** The research↔paper loop is closed (paper → transitions → offline IQL
-→ registry promote → Ops bind with CI-pinned weights). Live readiness has a
-read-only observe port (L1); **live-send remains forbidden** until ADR-0004.
+**Progress:** Research↔paper loop closed. Live readiness has read-only observe;
+live-send remains gated on ADR-0004.
 
 ---
 

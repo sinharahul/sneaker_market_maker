@@ -9,20 +9,20 @@ layers where they appear — especially [Layer 0](#layer-0--legacy-analytics-cor
 [Layer 3](#layer-3--fee-once-rewards), [Layer 5](#layer-5--walk-forward-evaluation-and-ope),
 and [Layer 6](#layer-6--two-different-smart-policies).
 
-**What this product is:** an offline research stack for a sneaker market-making paper
-trader. It builds training data from historical/synthetic (and now **paper-exported**)
-replay, trains and compares policies (deterministic rules, PFHedge baseline, custom
-IQL), and may *recommend* actions — but **deterministic risk gates always decide**
-what the paper trader does. The research↔paper loop is **closed** on the living
-roadmap (`docs/ROADMAP.md`: R0–R4 done). PFHedge stays research-comparison only
-(ADR-0005). Live-send is still out of scope.
+**What this product is:** a **sneaker market-making system** (StockX-first). This
+walkthrough covers the **research / learning** subsystem: historical and
+paper-exported data → offline IQL / PFHedge comparison → registry. Sister paths:
+**Paper Ops** (continuous quoting under Gate) and **live readiness** (observe
+today; live-send later behind ADR-0004). Deterministic risk gates always decide
+what is allowed to trade. The research↔paper loop is **closed** (`docs/ROADMAP.md`:
+R0–R4). PFHedge stays research-comparison only (ADR-0005).
 
-**What this product is not:** a live StockX/GOAT bot, a Cloudflare bypass, or an
-auto-approved trading agent.
+**What this product is not:** an ungated live bot, a Cloudflare/CAPTCHA bypass, or
+an auto-approved trading agent. Live order send is roadmap-gated, not “never.”
 
 For the **Continuous Paper Market-Maker** Ops path (golden replay → Strategy Mode →
-Gate → fills), use [`docs/paper-ops/`](../paper-ops/README.md) — separate from this
-research walkthrough and from the Guided Demo.
+Gate → fills), use [`docs/paper-ops/`](../paper-ops/README.md). For observe-only
+live readiness, see [`docs/observe/`](../observe/README.md).
 
 ---
 

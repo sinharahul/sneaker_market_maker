@@ -1,12 +1,16 @@
 # Sneaker Market Maker
 
-Local-first paper trading and offline research for sneaker market making. Version 1 builds a continuous paper market-maker; live marketplace execution is out of scope.
+StockX-first **sneaker market-making system**: continuous two-sided quoting, fee-aware risk, offline policy learning, and a gated live-readiness track. **Paper** is the current execution and training loop; **live order send** is roadmap work behind ADR-0004 (default off). The Deterministic Gate is always final.
 
 ## Language
 
+**Sneaker Market Maker (product)**:
+The overall system this repo builds — market making on sneaker secondary markets (StockX-shaped), spanning paper Ops, offline research/IQL, and live readiness. Not “paper trading only.”
+_Avoid_: Treating the repo as a research toy with no live path; treating paper as the permanent ceiling
+
 **Continuous Paper Market-Maker**:
-The Version 1 control-plane and simulation that keeps two-sided paper quotes alive under deterministic StockX historical replay (and StockX-shaped fixtures), revising, cancelling, or replacing paper orders as market and risk state change — without live execution.
-_Avoid_: Live market maker, research demo, guided demo, shadow recommender (those are related but not this system)
+The shipped control-plane and simulation that keeps two-sided **paper** quotes alive under deterministic StockX historical replay (and StockX-shaped fixtures), revising, cancelling, or replacing paper orders as market and risk state change — without live execution. The safe proving ground for Strategy Modes and Gate DNA before live-send.
+_Avoid_: Live market maker (until L4), research demo, guided demo, shadow recommender (those are related but not this system)
 
 **Product-Family Allowlist**:
 The version-controlled set of product families the Continuous Paper Market-Maker may trade: Jordan 1 Retro and Nike Dunk Low only. Any other family fails validation.

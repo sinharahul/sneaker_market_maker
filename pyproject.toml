@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "sneaker-market-maker"
 version = "0.1.0"
-description = "Fee-aware sneaker market opportunity and risk engine"
+description = "StockX-first sneaker market-making system: paper Ops, offline IQL, live readiness"
 requires-python = ">=3.10,<3.13"
 dependencies = [
     "numpy==1.26.4",

@@ -1,7 +1,8 @@
 # Roadmap — Research↔Paper loop + Live readiness
 
 **Status:** living roadmap (milestone phases; no calendar dates)  
-**Progress (2026-07-18):** **Track R complete** (R0–R4). **L1 shipped.** Next: **L2** shadow would-quote → **L3** kill-switch / ADR-0004 (live-send still forbidden).  
+**Product scope:** StockX-first **sneaker market-making** — paper Ops + offline learning + live readiness (not paper-only).  
+**Progress (2026-07-18):** **Track R complete** (R0–R4). **L1 shipped.** Next: **L2** shadow would-quote → **L3** kill-switch / ADR-0004 (**live-send still off**).  
 **Glossary:** [`CONTEXT.md`](../CONTEXT.md)  
 **Formal slice spec:** [`superpowers/specs/2026-07-18-dual-track-roadmap.md`](superpowers/specs/2026-07-18-dual-track-roadmap.md)  
 **Hard invariants:** Decimal money · Deterministic Gate final · no anti-bot / protection bypass · Product-Family Allowlist unless explicitly expanded · **no live-send without ADR-0004**
@@ -12,8 +13,8 @@
 
 | Track | Goal |
 |-------|------|
-| **R — Research↔Paper loop** | Close the loop: paper fills → transitions → retrain IQL → registry qualify → bind **real** artifacts into Ops Strategy Modes |
-| **L — Live readiness** | Parallel observe/rehearse work (read-only data, shadow “would quote”, kill-switch design). **Live-send only after Track R exit criteria + ADR-0004** |
+| **R — Research↔Paper loop** | Close the learning loop: paper fills → transitions → retrain IQL → registry qualify → bind **real** artifacts into Strategy Modes (done) |
+| **L — Live readiness** | Observe/rehearse toward **live** market making (read-only data → shadow “would quote” → kill-switch). **Live-send only after Track R exit + ADR-0004** |
 
 ```text
 Track R (paper/offline)                    Track L (parallel, no send until gate)

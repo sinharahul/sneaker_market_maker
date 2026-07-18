@@ -1,9 +1,10 @@
 # Senior Architect Walkthrough — Intuition, Problem, Tools, Math
 
 **Who this is for:** Engineers and research leads who want *why* before *where*.  
-**Hard rule:** Offline / paper only. **No live marketplace orders.** The Deterministic Gate always has the last say.
+**Product:** A StockX-first **sneaker market-making system** — paper Ops + offline learning + live readiness.  
+**Hard rules:** Deterministic Gate always final. **No live order send** until ADR-0004 + human enable. No marketplace protection bypass.
 
-**Progress:** Research↔paper loop closed (R0–R4). L1 read-only observe shipped. Live-send still gated on ADR-0004 — see [`../ROADMAP.md`](../ROADMAP.md).
+**Progress:** Research↔paper loop closed (R0–R4). L1 read-only observe shipped. Live-send still gated — see [`../ROADMAP.md`](../ROADMAP.md).
 
 **Companions:** [`QUANTITATIVE_CONTEXT.md`](./QUANTITATIVE_CONTEXT.md) (full math) · [`../MASTER.md`](../MASTER.md) (product map) · [`exercise-pipeline.md`](./exercise-pipeline.md) (run tests)
 
@@ -19,7 +20,13 @@ On StockX-shaped sneaker markets, a naive “buy low, sell high” story fails f
 2. **Inventory is physical.** You hold a real pair (qty one), wait on shipping/auth, and can get stuck if the ask moves against you.  
 3. **Decisions are sequential and offline.** You cannot freely explore live markets. You must learn from logged paper/history under risk rules that never get bypassed.
 
-**Your goal:** Build a system that quotes both sides on paper, respects capital and allowlists, prices friction exactly, and improves risk-adjusted paper NAV — optionally with offline RL (IQL) that suggests actions but never overrides hard gates.
+**Your goal:** Build a **market-making system** for sneaker secondary markets that
+quotes both sides, respects capital and allowlists, prices friction exactly, and
+improves risk-adjusted NAV — first under paper replay, then via offline RL (IQL)
+that suggests actions but never overrides hard gates, and eventually under a
+gated live-readiness path (observe → shadow → ADR-0004 send).
+
+Paper is how we prove the DNA safely; it is not the product ceiling.
 
 ### The tools you use to solve it
 
@@ -373,4 +380,4 @@ Run path: [`exercise-pipeline.md`](./exercise-pipeline.md).
 | Observe-only (L1) | `docs/observe/` |
 | PFHedge deferred | `docs/adr/0005-pfhedge-paper-mode-deferred.md` |
 
-**Out of scope:** live StockX/GOAT **order** execution, ungated model trading, anti-bot evasion, treating synthetic stress as historical proof, float money in ledgers.
+**Out of scope (today):** live StockX/GOAT **order** send without ADR-0004, ungated model trading, anti-bot evasion, treating synthetic stress as historical proof, float money in ledgers. Live readiness (observe → shadow → gated send) is **in product scope** via Track L.

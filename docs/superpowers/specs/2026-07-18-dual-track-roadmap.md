@@ -10,7 +10,7 @@
 
 ## Problem Statement
 
-Paper Ops and research both shipped Strategy Modes and offline IQL, but the loop was weakly closed: paper experience did not reliably become training data that retrained and re-bound **real** registry artifacts into Ops. Separately, live readiness needed a gated track so observe/rehearse work could proceed without implying order send. This dual-track roadmap closed that gap.
+Building a **sneaker market-making system** needs more than a research notebook or a paper sandbox in isolation: operators need continuous quoting under a hard Gate, researchers need a closed learning loop from real paper experience, and the path to live must be rehearsable without smuggling order-send. Paper Ops and offline IQL both existed but were weakly closed; live readiness needed an explicit track so observe/rehearse could proceed without implying send. This dual-track roadmap closes the learning loop and advances live readiness under hard safety gates.
 
 ## Solution
 
