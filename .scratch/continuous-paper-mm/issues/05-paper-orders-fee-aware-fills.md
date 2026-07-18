@@ -4,10 +4,10 @@
 
 **Blocked by:** 04 — Quote engine → Quote Intents (continuous)
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Accepted Paper Orders are quantity one and never partially fill
-- [ ] Matching is deterministic for the same replay events and order state
-- [ ] Each Fee-Aware Fill links to its source market event and fee/slippage versions
-- [ ] Paper Capital updates correctly on buy/sell fills
-- [ ] Control-plane or execution-port tests prove fill observability
+- [x] Accepted Paper Orders are quantity one and never partially fill
+- [x] Matching is deterministic for the same replay events and order state
+- [x] Each Fee-Aware Fill links to its source market event and fee/slippage versions
+- [x] Paper Capital updates correctly on buy/sell fills
+- [x] Control-plane or execution-port tests prove fill observability
