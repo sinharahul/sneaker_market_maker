@@ -13,7 +13,19 @@ from fastapi.responses import JSONResponse
 from sneaker_market_maker.api.research_routes import JsonValue, validate_payload
 
 COMMANDS = frozenset(
-    {"load", "start", "pause", "resume", "stop", "enable", "disable", "cancel", "tick"}
+    {
+        "load",
+        "start",
+        "pause",
+        "resume",
+        "stop",
+        "enable",
+        "disable",
+        "cancel",
+        "tick",
+        "set-mode",
+        "set-budget",
+    }
 )
 READ_RESOURCES = frozenset(
     {"status", "capital", "orders", "fills", "lots", "pnl", "replay"}

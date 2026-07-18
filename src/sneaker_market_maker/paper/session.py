@@ -19,8 +19,10 @@ from sneaker_market_maker.paper.execution import (
     VersionedFees,
 )
 from sneaker_market_maker.paper.gate import DeterministicGate
+from sneaker_market_maker.paper.inference import InferenceError
 from sneaker_market_maker.paper.intents import IntentKind, QuoteIntent, Side
 from sneaker_market_maker.paper.inventory import InventoryLedger, LotState
+from sneaker_market_maker.paper.ops_mode import PaperModeControls
 from sneaker_market_maker.paper.projections import (
     capital_projection,
     fill_dict,
@@ -33,7 +35,9 @@ from sneaker_market_maker.paper.projections import (
 from sneaker_market_maker.paper.quote_engine import QuoteEngine, QuoteEngineConfig
 from sneaker_market_maker.paper.replay import load_golden_historical_replay
 from sneaker_market_maker.paper.replay.simulator import HistoricalReplaySimulator
+from sneaker_market_maker.paper.strategy_mode import QualificationError, StrategyMode
 from sneaker_market_maker.persistence.paper_repository import InMemoryPaperStore
+from sneaker_market_maker.research.registry.service import RegistryState
 
 DEFAULT_GOLDEN_ROOT = Path(__file__).resolve().parents[3] / "data" / "paper" / "golden_v1"
 DEFAULT_FEES = VersionedFees(
@@ -90,6 +94,12 @@ class PaperOpsSession:
         self._correlation_id = uuid4()
         self._idempotency: dict[str, tuple[str, UUID]] = {}
         self._events: list[PaperEventEnvelope] = []
+        self._mode = PaperModeControls()
+
+    def bind_active_model(self, *, model_id: str, registry_state: RegistryState) -> None:
+        """Bind the research registry model used for Model Qualification."""
+
+        self._mode.bind_active_model(model_id=model_id, registry_state=registry_state)
 
     def execute(self, command: str, payload: dict[str, Any], idempotency_key: str) -> UUID:
         normalized = json.dumps(payload, sort_keys=True, separators=(",", ":"))
@@ -108,6 +118,8 @@ class PaperOpsSession:
             "disable": self._cmd_disable,
             "cancel": self._cmd_cancel,
             "tick": self._cmd_tick,
+            "set-mode": self._cmd_set_mode,
+            "set-budget": self._cmd_set_budget,
         }
         if command not in handlers:
             raise KeyError(command)
@@ -124,6 +136,14 @@ class PaperOpsSession:
                 ledger=self._ledger,
                 simulator=self._simulator,
                 audit_sequence=len(self._events),
+                strategy_mode=self._mode.machine.mode.value,
+                registry_model_id=self._mode.model_id,
+                registry_state=(
+                    None
+                    if self._mode.registry_state is None
+                    else self._mode.registry_state.value
+                ),
+                inference_latency_budget_ms=self._mode.budget.limit_ms,
             )
         if resource == "capital":
             return capital_projection(self._execution.capital)
@@ -250,6 +270,32 @@ class PaperOpsSession:
             "replay.ticked",
             {"events": len(batch), "event_ids": [event.event_id for event in batch]},
         )
+        return self._events[-1].event_id
+
+    def _cmd_set_mode(self, payload: dict[str, Any]) -> UUID:
+        mode = StrategyMode(str(payload["mode"]))
+        try:
+            _changed, event_payload = self._mode.set_mode(mode)
+        except QualificationError as error:
+            self._persist_and_emit(
+                "strategy.mode_rejected",
+                self._mode.rejection_payload(mode, error),
+            )
+            raise ValueError(str(error)) from error
+        self._persist_and_emit("strategy.mode_set", event_payload)
+        return self._events[-1].event_id
+
+    def _cmd_set_budget(self, payload: dict[str, Any]) -> UUID:
+        limit_ms = int(payload["limit_ms"])
+        try:
+            event_payload = self._mode.set_budget(limit_ms)
+        except InferenceError as error:
+            self._persist_and_emit(
+                "inference.budget_rejected",
+                {"limit_ms": limit_ms, "code": error.code},
+            )
+            raise ValueError(str(error)) from error
+        self._persist_and_emit("inference.budget_set", event_payload)
         return self._events[-1].event_id
 
     def _reset_book(self) -> None:

@@ -64,11 +64,18 @@ def status_projection(
     ledger: InventoryLedger,
     simulator: HistoricalReplaySimulator,
     audit_sequence: int,
+    strategy_mode: str = "deterministic",
+    registry_model_id: str | None = None,
+    registry_state: str | None = None,
+    inference_latency_budget_ms: int = 100,
 ) -> dict[str, Any]:
     replay = simulator.projection()
     return {
         "run_id": run_id,
         "strategy_enabled": quotes.enabled,
+        "strategy_mode": strategy_mode,
+        "registry": {"model_id": registry_model_id, "state": registry_state},
+        "inference_latency_budget_ms": inference_latency_budget_ms,
         "replay": replay_projection(simulator),
         "capital": capital_projection(execution.capital),
         "pnl": pnl_projection(execution.capital, ledger),

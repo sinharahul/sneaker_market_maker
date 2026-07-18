@@ -2,8 +2,8 @@
 
 - **Spec:** [SPEC.md](./SPEC.md)
 - **Canonical copy:** `docs/superpowers/specs/2026-07-18-model-integrated-paper-slice.md`
-- **Done:** `01` … `06`
-- **Frontier now:** `07` (Paper Ops set-mode + set-budget)
-- **Next:** `/implement 07`
+- **Done:** `01` … `07`
+- **Frontier now:** `08` (deterministic mode unchanged quote path)
+- **Next:** `/implement 08`
 
 Work with `/implement` one frontier ticket at a time.

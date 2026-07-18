@@ -4,9 +4,9 @@
 
 **Blocked by:** 05 — Strategy Mode state machine; 06 — Model Qualification gates
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Idempotent set-mode and set-budget commands exist on the Paper Ops Control Plane
-- [ ] Projections include mode, registry model/state, and latency budget
-- [ ] Unqualified set-mode does not change active mode
-- [ ] Control-plane tests cover idempotency and reject paths
+- [x] Idempotent set-mode and set-budget commands exist on the Paper Ops Control Plane
+- [x] Projections include mode, registry model/state, and latency budget
+- [x] Unqualified set-mode does not change active mode
+- [x] Control-plane tests cover idempotency and reject paths
