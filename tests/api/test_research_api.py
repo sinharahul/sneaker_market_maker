@@ -150,6 +150,8 @@ def test_command_double_rolls_back_state_and_audit_together() -> None:
     "payload",
     [
         {"model_code": "print('unsafe')"},
+        {"nested": {"arbitrary_code": "print('unsafe')"}},
+        {"nested": [{"code_snippet": "print('unsafe')"}]},
         {"nested": {"tensor": [1.0, 2.0]}},
         {"artifact_blob": "AAAA"},
     ],

@@ -36,7 +36,6 @@ READ_RESOURCES = frozenset(
 COMMANDS = frozenset(
     {"create", "cancel", "validate", "register", "shadow", "advisory", "rollback"}
 )
-_FORBIDDEN_FIELD_NAMES = frozenset({"code", "source_code", "model_code", "python_code"})
 
 
 class ResearchQueryService(Protocol):
@@ -79,7 +78,7 @@ def validate_payload(payload: Mapping[str, JsonValue]) -> None:
         for key, value in current.items():
             normalized = key.casefold().replace("-", "_")
             if (
-                normalized in _FORBIDDEN_FIELD_NAMES
+                "code" in normalized
                 or "tensor" in normalized
                 or "blob" in normalized
             ):
