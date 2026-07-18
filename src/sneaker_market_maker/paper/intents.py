@@ -27,3 +27,6 @@ class QuoteIntent:
     expected_fees_and_slippage: Decimal
     product_family: str
     replaces_reservation: Decimal | None = None
+    price: Decimal | None = None
+    style_code: str | None = None
+    shoe_size: Decimal | None = None

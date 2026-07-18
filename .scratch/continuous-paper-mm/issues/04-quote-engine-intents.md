@@ -4,10 +4,10 @@
 
 **Blocked by:** 02 — Simulation clock + replay controls; 03 — Paper Capital + Deterministic Gate
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Desired vs active quotes diverge into explicit Quote Intents (not silent book edits)
-- [ ] Ask intents are withheld when no available Inventory Lot can back them (inventory may be stubbed until ticket 06 if needed, but the rule is enforced)
-- [ ] Price/age thresholds prevent quote thrash
-- [ ] Strategy disable stops maintaining quotes per agreed policy
-- [ ] Tests show continuous revise/cancel/replace under changing replay events
+- [x] Desired vs active quotes diverge into explicit Quote Intents (not silent book edits)
+- [x] Ask intents are withheld when no available Inventory Lot can back them (inventory may be stubbed until ticket 06 if needed, but the rule is enforced)
+- [x] Price/age thresholds prevent quote thrash
+- [x] Strategy disable stops maintaining quotes per agreed policy
+- [x] Tests show continuous revise/cancel/replace under changing replay events

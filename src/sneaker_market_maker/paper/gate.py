@@ -37,7 +37,11 @@ class DeterministicGate:
             return GateDecision(False, GateReason.UNSUPPORTED_PRODUCT_FAMILY)
 
         if intent.side is Side.SELL:
-            return GateDecision(True, GateReason.ACCEPTED, capital)
+            if intent.kind is IntentKind.CANCEL:
+                return GateDecision(True, GateReason.ACCEPTED, capital)
+            if intent.kind in (IntentKind.PLACE, IntentKind.REVISE, IntentKind.REPLACE):
+                return GateDecision(True, GateReason.ACCEPTED, capital)
+            return GateDecision(False, GateReason.INVALID_INTENT)
 
         if intent.kind is IntentKind.CANCEL:
             return self._cancel(intent, capital)
